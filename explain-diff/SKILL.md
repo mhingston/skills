@@ -1,7 +1,9 @@
 ---
-name: explain-diff-html
-description: Use when the user asks to deeply understand a code change, diff, commit, branch, or pull request. Produces a self-contained interactive HTML explainer designed to help the reader participate in future work, not merely approve the current change.
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+name: explain-diff
+description: >
+  Use when the user asks to deeply understand a code change, diff, commit, branch, or pull request.
+  Produces a self-contained interactive HTML explainer designed to help the reader participate in future work, not merely approve the current change.
+---
 
 # Explain Diff
 
