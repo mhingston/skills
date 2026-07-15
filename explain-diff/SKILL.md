@@ -19,6 +19,11 @@ The primary goal is to give the reader a usable mental model of the system so th
 
 Do not substitute a diff summary for investigation of the surrounding system.
 
+Apply `../references/change-investigation.md`,
+`../references/evidence-discipline.md`, and
+`../references/comprehension-design.md` when those package references are
+available.
+
 ## Investigate before writing
 
 First establish the exact scope of the change.
@@ -213,7 +218,43 @@ Randomize answer order using a deterministic seed, or deliberately balance corre
 
 Show the total score, provide a retry option, and treat four out of five as the suggested understanding threshold. A passing score is an aid to reflection, not proof that the code is correct.
 
-### 9. Source map
+### 9. Decision-support summary
+
+End the substantive explanation with a compact, non-binding summary containing:
+
+* the central behavioural change;
+* the most important invariant;
+* the strongest credible failure mode;
+* the weakest or missing evidence;
+* important untested behaviour;
+* expected detection and containment signals;
+* the most consequential trade-off;
+* questions that require human or domain judgment.
+
+This section supplies inputs to a later verdict gate. It must not recommend
+approval, declare the work safe, or select a verdict.
+
+### 10. Human explain-back
+
+Include an unanswered section for the accountable reader. Do not generate,
+prefill, suggest, or score the answers.
+
+Ask the reader to answer in their own words:
+
+* Without referring to filenames, what behaviour changed?
+* Trace one representative input through the affected system.
+* What invariant must remain true?
+* What is the most credible way that invariant could be violated?
+* Which important behaviour is not established by the current tests?
+* What signal would first indicate a production problem?
+* How would the change be contained or reversed?
+* What trade-off or residual risk would be accepted by proceeding?
+* What would probably need to change for the next plausible requirement?
+
+A copied agent summary, `reviewed`, or `looks good` is not a human explain-back.
+The answers are decision inputs, not proof of correctness.
+
+### 11. Source map
 
 End with a compact source map containing:
 
