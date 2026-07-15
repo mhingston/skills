@@ -1,7 +1,35 @@
 # Agent Skills
 
-A catalogue of reusable agent skills for software engineering, learning,
-workflow improvement, and accountable AI-assisted delivery.
+A catalogue of reusable **agent skills** and **orchestrating agent definitions**
+for software engineering, learning, workflow improvement, and accountable
+AI-assisted delivery.
+
+The repository is intended to be named `agent-skills`: skills remain portable,
+independently loadable capabilities, while agents provide opinionated workflows
+that coordinate those capabilities without collapsing their boundaries.
+
+## Repository structure
+
+```text
+agents/
+  <agent-name>.md          # orchestration and workflow state
+
+<skill-name>/
+  SKILL.md                 # independently installable skill
+  references/              # optional skill-local support material
+```
+
+### Agents
+
+Agents coordinate multiple stages, choose proportionate workflows, maintain
+state, and return control to humans or calling systems at explicit boundaries.
+An agent may refer to companion skills, but it must not silently weaken their
+safety constraints or manufacture work assigned to a human.
+
+### Skills
+
+Skills are focused, reusable capabilities. Every skill is self-contained and
+must remain useful when installed without any agent or companion skill.
 
 ## Packaging rule
 
@@ -12,14 +40,21 @@ own directory only.
 - Supporting files, when needed, live under that skill's own
   `<skill-name>/references/` directory.
 - A skill must not depend on files in a parent directory, a repository-level
-  shared folder, or another skill's directory.
+  shared folder, another skill's directory, or an agent definition.
 - Small pieces of process guidance may be intentionally duplicated between
   skills so each package remains portable and independently loadable.
 - Skills may mention companion skills as optional workflow stages, but they must
   still behave safely and usefully when installed alone.
 
-This repository's root README is a catalogue only; it is not a runtime
-dependency of any skill.
+Agent definitions are orchestration artefacts rather than skill dependencies.
+Harness-specific copies may be generated from the canonical definitions under
+`agents/`, but the skill directories must not rely on them.
+
+## Agent catalogue
+
+| Agent | Use it for |
+| --- | --- |
+| [`pr-review`](agents/pr-review.md) | Coordinate proportionate PR explanation, human-verdict preparation, explicit human input, and revision-bound verdict recording without approving or merging. |
 
 ## Skill catalogue
 
@@ -37,25 +72,41 @@ dependency of any skill.
 | [`repository-ontology`](repository-ontology/SKILL.md) | Assess whether a repository needs an ontology, establish the smallest evidence-backed model, and validate its usefulness for people and agents. |
 | [`session-lessons`](session-lessons/SKILL.md) | Analyse multiple sessions for recurring friction and effective patterns that deserve durable codification. |
 
-## Human-verdict workflow
+## Pull-request review workflow
 
-The change-review skills compose as separate responsibility boundaries:
+The `pr-review` agent provides one coherent entry point while preserving the
+change-review skills as separate responsibility boundaries:
 
 ```text
 agent implementation and local verification
                     ↓
 create-pr — assemble evidence and create the review surface
                     ↓
+pr-review agent begins
+                    ↓
 explain-diff — build a causal mental model when proportionate
                     ↓
 human-verdict-gate — prepare the current decision packet
                     ↓
-human chooses and explains a verdict
+human personally explains and chooses a verdict
                     ↓
 record-verdict — persist the decision against the exact PR revision
 ```
 
-Each stage can also be installed and used independently.
+`create-pr` normally sits before the review agent because it belongs to the
+authoring and handoff lifecycle. Every stage can still be installed and invoked
+independently.
+
+### `pr-review`: coordinate the review lifecycle
+
+Use after a pull request exists. It pins the current head SHA, reconstructs the
+review frame, classifies consequence and comprehension risk, invokes the
+lightest proportionate companion skills, stops for explicit human input, and
+records the supplied verdict only when it still applies to the reviewed
+revision.
+
+It coordinates evidence and comprehension; it does not approve, merge, deploy,
+or manufacture a human decision.
 
 ### `create-pr`: make the change reviewable
 
@@ -99,14 +150,18 @@ Schema and comment template are packaged inside
 5. Green checks cannot silently replace explicit risk acceptance.
 6. Automation may enforce a recorded verdict, but it must not invent one.
 7. Use the lightest skill and artefact proportionate to the task and risk.
-8. Portability and correct skill-loading boundaries take priority over avoiding
+8. Agents coordinate capabilities; they do not erase responsibility boundaries.
+9. Portability and correct skill-loading boundaries take priority over avoiding
    small amounts of duplicated guidance.
 
 ## Installation and use
 
-Copy the directory for each required skill into the skill location used by your
-agent harness. Do not copy any parent-level support folder; there should not be
-one.
+Copy each required skill directory into the skill location used by your agent
+harness. Do not copy any parent-level support folder; there should not be one.
+
+Install or adapt canonical agent definitions from `agents/` separately according
+to the harness's agent format. An agent definition is optional: users and
+systems may invoke the skills directly.
 
 Examples:
 
@@ -119,7 +174,11 @@ record-verdict/
 └── references/
     ├── verdict-comment-template.md
     └── verdict-record.schema.json
+
+agents/
+└── pr-review.md
 ```
 
-Skill support varies between agent products. The Markdown files are intended to
-serve as both executable agent guidance and reviewable process documentation.
+Agent and skill support varies between products. The Markdown files are intended
+to serve as executable guidance, portable source material for harness-specific
+configuration, and reviewable process documentation.
