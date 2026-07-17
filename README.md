@@ -68,6 +68,7 @@ Harness-specific copies may be generated from the canonical definitions under
 | [`explain-diff`](explain-diff/SKILL.md) | Build a causal, interactive mental model of a diff, commit, branch, or pull request so a reader can reason about and participate in future work. |
 | [`git-archaeologist`](git-archaeologist/SKILL.md) | Use repository history to identify ownership patterns, defect hotspots, maintenance risk, and investigation priorities. |
 | [`human-verdict-gate`](human-verdict-gate/SKILL.md) | Prepare a revision-specific decision packet for an accountable human without choosing, recording, or implying the verdict. |
+| [`lsp-config`](lsp-config/SKILL.md) | Detect repository languages and safely reconcile GitHub Copilot CLI LSP configuration and VS Code extension recommendations. |
 | [`record-verdict`](record-verdict/SKILL.md) | Persist an explicitly human-supplied verdict against the exact pull-request revision as a structured, idempotent GitHub record. |
 | [`repository-ontology`](repository-ontology/SKILL.md) | Assess whether a repository needs an ontology, establish the smallest evidence-backed model, and validate its usefulness for people and agents. |
 | [`session-lessons`](session-lessons/SKILL.md) | Analyse multiple sessions for recurring friction and effective patterns that deserve durable codification. |
