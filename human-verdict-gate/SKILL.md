@@ -1,12 +1,11 @@
 ---
 name: human-verdict-gate
 description: >-
-  Use when a human is preparing to approve, reject, redirect, defer, merge,
-  deploy, publish, or otherwise accept consequential agent-generated work.
-  Inspect the current revision, original intent, evidence, checks, reviews,
-  unresolved concerns, operational readiness, and comprehension evidence.
-  Prepare a decision packet, but do not choose, record, approve, merge, deploy,
-  or write the human's explain-back or risk acceptance.
+  Internal PR-review decision-packet module. Use only after the pr-review agent
+  has pinned the current head SHA, established the review frame, and completed
+  any required explain-diff stage. Prepare the human decision packet without
+  choosing or recording a verdict.
+user-invocable: false
 ---
 
 # Human Verdict Gate
@@ -14,10 +13,18 @@ description: >-
 Prepare the evidence and unanswered questions an accountable human needs to
 issue a revision-specific verdict.
 
+## Invocation contract
+
+Run this module only when `pr-review` invokes it with a pinned revision, review
+frame, current evidence, and any required current explainer. If invoked directly
+or before those inputs exist, do not prepare a packet; direct the caller to the
+`pr-review` agent. Return the packet to `pr-review`, which must stop for explicit
+human input before any recording stage.
+
 > The agent returns evidence. The human owns the verdict.
 
-A green build, plausible explanation, model review, confidence score, quiz
-result, or lack of objections is not a human verdict.
+A green build, plausible explanation, model review, confidence score, completed
+understanding check, or lack of objections is not a human verdict.
 
 ## Boundaries
 
@@ -59,9 +66,9 @@ silently carrying it forward.
 
 ## Comprehension discipline
 
-Comprehension is distinct from correctness. A clear explanation or passing quiz
-can support understanding but cannot prove the implementation correct or
-authorise approval.
+Comprehension is distinct from correctness. A clear explanation or completed
+understanding check can support reflection but cannot prove the implementation
+correct or authorise approval.
 
 Classify comprehension risk:
 
@@ -86,7 +93,8 @@ Classify comprehension risk:
 | `BRIEF_PATH` | Approved change brief | Optional |
 | `EXPLAINER_PATH` | Current explain-diff artefact | Optional |
 | `REQUIRED_POLICY` | Repository-specific decision requirements | Optional |
-| `OUTPUT_PATH` | Decision packet path | Temporary or artifact directory |
+| `ARTIFACT_DIRECTORY` | Shared review artefact directory | Supplied by `pr-review` |
+| `OUTPUT_PATH` | Decision packet path | Dated filename under `ARTIFACT_DIRECTORY` |
 
 When no PR exists, assess another explicit artefact or revision only when its
 identity and decision surface can be recorded exactly.
@@ -214,9 +222,11 @@ When an `explain-diff` artefact exists:
 1. Verify that it covers the current head SHA and identify stale sections.
 2. Check material claims against the diff and supporting evidence.
 3. Use its reader map, runtime path, invariant, failure modes, participation
-   guide, understanding check, and decision-support summary as inputs.
-4. Treat quiz results as reflective evidence only.
-5. Never copy its answers into the human explain-back.
+   guide, generation-first understanding checks, and decision-support summary
+   as inputs.
+4. Treat embedded prediction and self-explanation responses as private
+   reflection. Do not request, recover, or copy them into the packet.
+5. Never copy explainer-authored answers into the human explain-back.
 
 When no explainer exists, assess whether current materials support a causal
 mental model proportionate to the risk. For moderate or high risk, return
@@ -259,7 +269,10 @@ These describe packet readiness, not approve/block/merge decisions.
 
 ## 10. Produce the decision packet
 
-Save outside the repository unless explicitly requested otherwise. Use:
+Save at `OUTPUT_PATH` inside the `ARTIFACT_DIRECTORY` supplied by `pr-review`.
+That directory must already be verified as either a git-ignored repository path
+or a harness-managed path outside the repository. Do not select a different
+directory or modify ignore rules. Use:
 
 ```text
 YYYY-MM-DD-pr-123-human-verdict-packet.md

@@ -29,18 +29,33 @@ without collapsing their responsibility boundaries.
 - Pin all evidence and decisions to the exact pull-request head SHA.
 - Stop and restart the affected stages when the head revision changes.
 
-## Companion skills
+## Internal companion skills
 
-This agent may coordinate these independently installable skills when available:
+This agent is the only public interface to these independently packaged internal
+modules:
 
 - `explain-diff` — build a causal mental model of the current change;
 - `human-verdict-gate` — prepare a revision-specific human decision packet;
 - `record-verdict` — persist an explicitly human-supplied verdict against the
   exact reviewed revision.
 
-The agent must remain safe when one or more companion skills are unavailable.
-Do not claim to have executed a missing skill. Either perform the smallest safe
-fallback described here or report the missing capability.
+Invoke them only in this order:
+
+1. Invoke `explain-diff` only after inspection and risk classification, and only
+   for moderate or high comprehension risk. For low risk, omit this module.
+2. Invoke `human-verdict-gate` after the optional explainer and before requesting
+   or accepting a verdict. This module is mandatory for every review.
+3. Stop in `HUMAN_INPUT_REQUIRED` until the accountable human supplies every
+   required decision field.
+4. Re-read the pull request and verify the head SHA. Enter `RECORD_READY` only
+   when the human input is complete and still applies to that revision.
+5. Invoke `record-verdict` last. Never invoke it in parallel with an earlier
+   module or before the human stop.
+
+Do not expose, suggest, or route users to the internal module names. If
+`explain-diff` is required but unavailable, or either mandatory module is
+unavailable, return `REQUIRED_CAPABILITY_MISSING` and stop. Do not claim to have
+executed a missing module or reproduce its responsibilities inline.
 
 `create-pr` is normally outside this agent's scope. Begin after a pull request
 exists unless the user explicitly asks for both creation and review preparation.
@@ -53,7 +68,38 @@ exists unless the user explicitly asks for both creation and review preparation.
 | `REVIEW_GOAL` | Decision being prepared | General PR verdict |
 | `REQUIRED_POLICY` | Repository-specific review requirements | Optional |
 | `BRIEF_PATH` | Approved change brief | Optional |
-| `OUTPUT_DIRECTORY` | Location for temporary review artefacts | Harness default |
+| `OUTPUT_DIRECTORY` | Per-review artefact directory | Verified ignored repository directory, otherwise harness directory outside the repository |
+
+## Artefact storage
+
+Resolve one `ARTIFACT_DIRECTORY` before invoking any internal module and pass it
+to every stage:
+
+1. When `OUTPUT_DIRECTORY` is explicit and outside the repository, use it.
+2. When an explicit directory is inside the repository, use it only after
+   `git check-ignore` confirms a probe path beneath it is ignored and Git does
+   not already track the directory or its contents.
+3. Otherwise prefer
+   `<repository-root>/.agent-artifacts/pr-review/<owner>-<repository>-pr-<number>/`
+   only when the same checks confirm it is ignored.
+4. If no safe ignored repository directory exists, use a harness-managed
+   temporary or artefact directory outside the repository.
+
+For a repository-local candidate, require the first command to exit successfully
+and the second to produce no paths:
+
+```bash
+git check-ignore -q -- "$CANDIDATE/.gitignore-probe"
+git ls-files -- "$CANDIDATE"
+```
+
+Never add or modify ignore rules in the target repository during a review.
+Never write review artefacts to a tracked or unignored repository path. Store
+the explainer, decision packet, checkpoint, temporary comment body, and optional
+local verdict copy in `ARTIFACT_DIRECTORY`. Git ignore prevents accidental
+commits; it is not a confidentiality boundary. After writing to a repository-local
+directory, confirm `git status --short -- "$ARTIFACT_DIRECTORY"` produces no
+entries.
 
 ## Workflow state
 
@@ -69,10 +115,14 @@ INSPECT
 At any point:
   HEAD_CHANGED -> STALE -> INSPECT
   REQUIRED_EVIDENCE_MISSING -> BLOCKED
-  REQUIRED_CAPABILITY_MISSING -> BLOCKED_OR_SAFE_FALLBACK
+  REQUIRED_CAPABILITY_MISSING -> BLOCKED
 ```
 
 Report the current state when returning control to the user.
+
+After every state transition, persist the shared review context described below.
+Treat the checkpoint as resumable coordination state, never as evidence or a
+human decision.
 
 ## 1. Resolve and pin the decision surface
 
@@ -123,6 +173,19 @@ Classify both dimensions independently:
 Use the lightest workflow proportionate to both classifications. Do not use file
 count or diff size as the sole proxy for risk.
 
+### Review ticket
+
+After inspection and risk classification, show one compact progress ticket:
+
+```text
+review    owner/repository#123    head a1b2c3d
+state     EXPLAIN_REQUIRED        risk moderate/high
+evidence  checks 7/7              unresolved 2
+```
+
+Use current values, omit unavailable counters, and keep this to three lines.
+The ticket is orientation, not a readiness or verdict signal.
+
 ## 4. Select the workflow
 
 ### Low comprehension risk
@@ -131,6 +194,11 @@ Proceed directly to `human-verdict-gate` when the current pull-request material
 already supports a proportionate causal model.
 
 ### Moderate or high comprehension risk
+
+Before invoking a full explainer, tell the user that this is the slower review
+step and state what it will produce. Give a time estimate only when supported by
+the harness or prior measured runs; never invent one. Continue normal progress
+updates during long-running generation.
 
 Invoke `explain-diff` against the exact pinned head SHA before the verdict gate.
 Pass the established review frame and avoid rediscovering context unnecessarily.
@@ -166,6 +234,17 @@ Enter `HUMAN_INPUT_REQUIRED` and present:
 - the unanswered human explain-back and verdict fields;
 - a warning that any new commit invalidates the current decision surface.
 
+End the handoff with a compact receipt strip:
+
+```text
+current    HUMAN_INPUT_REQUIRED · head a1b2c3d
+artefacts  explainer current · verdict packet current
+human      explain-back · rationale · residual risk · verdict
+```
+
+Use current facts, name stale or missing artefacts instead of showing them as
+current, and keep human-owned fields visibly unanswered.
+
 Stop. Do not anticipate, suggest, or optimise for a particular verdict.
 
 ## 7. Validate explicit human input
@@ -192,16 +271,20 @@ Recording is not approval or merge. Return the durable record location, exact
 revision, recorded verdict, and any conditions or expiry point without taking a
 subsequent repository action.
 
-## Shared review context
+## Durable shared review context
 
-Maintain a compact context object between stages when the harness supports it:
+Maintain this compact context object between stages and persist it at
+`<ARTIFACT_DIRECTORY>/review-context.json` when filesystem access is available.
+Use the artefact-storage checks above before writing:
 
 ```json
 {
+  "schema_version": 1,
   "repository": "owner/repository",
   "pull_request": 123,
   "base_sha": "...",
   "head_sha": "...",
+  "state": "EXPLAIN_REQUIRED",
   "review_goal": "general PR verdict",
   "risk": {
     "consequence": "moderate",
@@ -212,15 +295,31 @@ Maintain a compact context object between stages when the harness supports it:
   "unknowns": [],
   "unresolved_concerns": [],
   "artefacts": {
-    "explain_diff": null,
-    "human_verdict_packet": null,
+    "explain_diff": {"path": "...", "head_sha": "..."},
+    "human_verdict_packet": {"path": "...", "head_sha": "..."},
     "verdict_record": null
-  }
+  },
+  "next_action": {"owner": "agent", "action": "build current explainer"},
+  "updated_at": "RFC-3339 timestamp"
 }
 ```
 
-This object is coordination state, not proof. Each stage must validate that the
-pull-request head remains current and that the evidence supports its claims.
+Write the checkpoint after pinning the decision surface, after risk
+classification, after producing each artefact, before returning control to the
+human, and after recording a verdict. When practical, write a temporary file
+and replace the checkpoint atomically.
+
+On every resume, read the live pull request first and then the checkpoint. If
+their head SHAs differ, enter `STALE`, mark revision-bound artefacts stale, and
+restart from `INSPECT`. If the checkpoint is missing or corrupt, reconstruct it
+from current sources and report that recovery; never infer state from
+conversation alone. Do not place agent-authored human explanations, rationale,
+risk acceptance, or verdict fields in this object.
+
+This object is coordination state, not proof. Each stage must still validate
+that the pull-request head remains current and that evidence supports its
+claims. When filesystem persistence is unavailable, carry the same object in
+the harness and disclose that cross-session recovery is unavailable.
 
 ## Completion reports
 

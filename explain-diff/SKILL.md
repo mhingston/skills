@@ -1,16 +1,25 @@
 ---
 name: explain-diff
 description: >
-  Use when the user asks to deeply understand a code change, diff, commit,
-  branch, or pull request. Produces a self-contained interactive HTML explainer
-  designed to help the reader participate in future work, not merely approve
-  the current change.
+  Internal PR-review comprehension module. Use only when the pr-review agent has
+  pinned the exact pull-request head SHA and classified comprehension risk as
+  moderate or high. Produces a self-contained interactive HTML explainer for
+  the current review revision.
+user-invocable: false
 ---
 
 # Explain Diff
 
 Create a rigorous, engaging, interactive explanation of the specified code
 change.
+
+## Invocation contract
+
+Run this module only when `pr-review` invokes it with the pinned pull-request
+revision and established review frame. If invoked directly or without that
+orchestration context, do not investigate or generate an artefact; direct the
+caller to the `pr-review` agent. Return the resulting artefact to `pr-review`,
+which owns the next stage.
 
 The primary goal is to give the reader a usable mental model so they can:
 
@@ -74,6 +83,13 @@ than presenting files alphabetically. Clearly distinguish changed code from
 unchanged context inspected to understand it. Never fabricate paths, symbols,
 line numbers, links, or dependency edges.
 
+## Set expectations before generation
+
+Once investigation shows that a full interactive explainer is warranted, tell
+the user that producing it is the slower step and state what it will contain.
+Give a time estimate only when supported by the harness or prior measured runs;
+never invent one. Continue concise progress updates during long-running work.
+
 ## Required structure
 
 ### 1. Reader map
@@ -130,6 +146,20 @@ small interactive micro-world. Useful forms include:
 
 The reader must control the interaction. Provide clear controls, visible state,
 annotations, and reset behaviour.
+
+Make the interaction generation-first:
+
+1. Present a concrete scenario and ask the reader for a free-text prediction
+   before revealing its outcome. An explicit `not sure` is a valid commitment.
+2. Keep the scenario's resolution gated until the reader commits.
+3. Let the reader step or manipulate the model and observe the resulting state.
+4. Ask for one short explanation of why the observed transition occurred before
+   revealing the canonical explanation.
+
+Earlier sections may summarise the overall change, but each prediction gate must
+target a scenario-specific outcome they have not already disclosed. Prediction
+responses are private reflection aids: do not grade, transmit, persist, or reuse
+them as the human explain-back.
 
 The micro-world must:
 
@@ -202,27 +232,29 @@ interpretation as the implementation.
 
 State exact commands and outcomes. When nothing was run, say so.
 
-### 8. Understanding check
+### 8. Generation-first understanding checks
 
-Create five medium-difficulty multiple-choice questions testing the causal model,
-not names or syntax. Collectively cover:
+Create three medium-difficulty checks of the causal model, covering:
 
-- main behavioural change;
-- runtime or data flow;
-- important invariant;
-- edge case or failure mode;
-- trade-off, extension point, or plausible future modification.
+- the main behavioural or runtime change;
+- an invariant plus a credible edge case or failure mode;
+- a trade-off, extension point, or plausible future modification.
 
-At least two questions must be scenario-based. For each question:
+At least two checks must be scenario-based. Place checks immediately before the
+relevant reveal where possible instead of collecting them only after the
+explanation. For each check:
 
-- provide plausible, stylistically balanced distractors;
-- reveal feedback only after selection;
-- explain the underlying concept and link to the relevant section;
-- avoid predictable correct-answer positions.
+1. ask for a short free-text prediction or explanation;
+2. accept an explicit `not sure` as a commitment;
+3. reveal feedback only after commitment;
+4. explain the mechanism and link to the relevant section;
+5. provide a reset or retry that clears the previous response and hides the
+   resolution again.
 
-Randomise deterministically or deliberately balance answer positions. Show the
-score and provide a retry option. Four out of five is a suggested reflection
-threshold, not proof of correctness or authorisation to approve.
+Do not calculate an overall score or present a mastery threshold. Multiple-choice
+options may appear only as an optional scaffold after the initial free response;
+they are navigation support, not comprehension evidence. Never copy these
+responses into the human explain-back.
 
 ### 9. Decision-support summary
 
@@ -280,6 +312,8 @@ Produce one self-contained HTML file with all CSS and JavaScript inline. It must
 - include print CSS that preserves diagrams and code blocks;
 - use a small, consistent set of diagram families;
 - use semantic HTML, CSS, and inline SVG rather than ASCII diagrams;
+- keep prediction resolutions hidden until commitment and restore that state on
+  reset;
 - preserve code formatting with `<pre><code>` and suitable white-space rules.
 
 Use callouts sparingly for key concepts, invariants, edge cases, uncertainty, and
@@ -293,11 +327,13 @@ The HTML must not:
 - use `fetch`, XMLHttpRequest, WebSockets, or analytics;
 - use `eval`, `new Function`, or dynamically execute repository content;
 - embed secrets, credentials, tokens, personal data, or production payloads;
+- persist prediction responses in local storage, cookies, files, or URLs;
 - place untrusted repository text inside JavaScript literals or executable
   markup.
 
 HTML-escape all source snippets and repository-derived text. Use toy or redacted
-data in diagrams and examples.
+data in diagrams and examples. Render free-text predictions with safe text APIs,
+never by assigning them to executable markup.
 
 ## Validation before delivery
 
@@ -308,17 +344,21 @@ Before saving:
 3. Confirm snippets are escaped and preserve whitespace.
 4. Confirm no external resources are referenced.
 5. Confirm repository text cannot escape code blocks or enter script execution.
-6. Test navigation, quiz, interactive controls, and reset behaviour.
+6. Test navigation, prediction gates, interactive controls, and reset behaviour;
+   confirm no gated resolution is visible before commitment.
 7. Check keyboard navigation, mobile layout, and reduced motion.
 8. Check print layout.
 9. Open locally when possible and check console errors.
-10. Confirm no repository files were modified.
+10. Confirm no tracked or unignored repository files were modified and the
+    generated artefact is in the directory supplied by `pr-review`.
 
 ## Saving and delivery
 
-Save outside the repository in a temporary or artifact directory. The filename
-must begin with the current date in `YYYY-MM-DD-` format and use a descriptive
-slug, for example:
+Save in `ARTIFACT_DIRECTORY` supplied by `pr-review`. That directory must already
+have been verified as either a git-ignored repository path or a harness-managed
+path outside the repository. Do not select a different directory or modify
+ignore rules. The filename must begin with the current date in `YYYY-MM-DD-`
+format and use a descriptive slug, for example:
 
 ```text
 2026-07-14-explain-payment-retry-state-machine.html

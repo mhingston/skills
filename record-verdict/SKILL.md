@@ -1,17 +1,26 @@
 ---
 name: record-verdict
 description: >-
-  Use after an accountable human has explicitly chosen and explained a verdict
-  for an existing pull request or consequential revision. Validate that the
-  decision content came from the human, bind it to the exact current head SHA,
-  and create or update a structured GitHub verdict comment idempotently. Do not
-  choose a verdict, write the human rationale, approve, merge, or deploy.
+  Internal PR-review verdict-persistence module. Use only after the pr-review
+  agent has obtained every required field from an accountable human, revalidated
+  the exact current head SHA, and entered RECORD_READY. Persist the supplied
+  verdict idempotently without approving, merging, or deploying.
+user-invocable: false
 ---
 
 # Record Verdict
 
 Persist an explicit human decision against the exact revision the human
 reviewed.
+
+## Invocation contract
+
+Run this module only when `pr-review` invokes it in `RECORD_READY` with complete
+human-supplied decision content, the reviewed head SHA, and the shared
+`ARTIFACT_DIRECTORY`. If invoked directly, before the human-verdict gate, or
+with missing orchestration state, do not write to GitHub; direct the caller to
+the `pr-review` agent. Return the durable record to `pr-review`, which owns
+workflow completion.
 
 This skill records judgment; it does not manufacture judgment or execute the
 production action that may follow it.
@@ -224,7 +233,8 @@ Do not edit history to make an old verdict appear current.
 Do not overwrite or coalesce another person's record. Create a separate record
 only when repository policy permits multiple decision owners.
 
-Create comments using a body file rather than shell interpolation:
+Create comments using a body file under `ARTIFACT_DIRECTORY` rather than shell
+interpolation:
 
 ```bash
 gh pr comment "$PR_NUMBER" --body-file "$COMMENT_FILE"
@@ -242,7 +252,9 @@ existing comments before retrying so a failure cannot create duplicates.
 
 ## 7. Optional local artefact
 
-Save a copy outside the repository as:
+When a local copy is needed, save it in the `ARTIFACT_DIRECTORY` supplied by
+`pr-review`. Do not select another location or modify repository ignore rules.
+Use:
 
 ```text
 YYYY-MM-DD-pr-123-verdict-<head-short-sha>.md
