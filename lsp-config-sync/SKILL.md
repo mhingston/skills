@@ -1,9 +1,9 @@
 ---
-name: lsp-config-sync
+name: lsp-config
 description: Detect languages in a repository, create or refresh `.github/lsp.json` for GitHub Copilot CLI, and merge VS Code extension recommendations into `.vscode/extensions.json`. Use when LSP configuration is missing or stale, a new language appears, or an installed language server needs repository wiring. Preserves unrelated servers, optional per-server settings, and other top-level fields. Does not install language servers.
 ---
 
-# LSP Config Sync
+# LSP Config
 
 Detect the languages used in the current repository, update the project-level
 GitHub Copilot CLI LSP configuration, merge VS Code extension recommendations,
