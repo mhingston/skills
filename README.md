@@ -71,6 +71,7 @@ under `agents/`, but skill directories must not read files from an agent package
 | [`deep-learning`](deep-learning/SKILL.md) | Turn passive study into active understanding through explanation, retrieval, diagnosis, application, and reinforcement. |
 | [`git-archaeologist`](git-archaeologist/SKILL.md) | Use repository history to identify ownership patterns, defect hotspots, maintenance risk, and investigation priorities. |
 | [`lsp-config`](lsp-config/SKILL.md) | Detect repository languages and safely reconcile GitHub Copilot CLI LSP configuration and VS Code extension recommendations. |
+| [`review`](review/SKILL.md) | Perform a standalone, read-only technical review across correctness, security, spec alignment, tests, and design. |
 | [`repository-ontology`](repository-ontology/SKILL.md) | Assess whether a repository needs an ontology, establish the smallest evidence-backed model, and validate its usefulness for people and agents. |
 | [`session-lessons`](session-lessons/SKILL.md) | Analyse multiple sessions for recurring friction and effective patterns that deserve durable codification. |
 | [`skill-creator`](skill-creator/SKILL.md) | Create new skills, modify and improve existing skills, and measure skill performance. |
@@ -120,6 +121,10 @@ record-verdict — persist the decision against the exact PR revision, last
 `create-pr` normally sits before the review agent because it belongs to the
 authoring and handoff lifecycle and remains a public skill. The three internal
 review modules are installed with `pr-review` but are not invoked independently.
+
+The public [`review`](review/SKILL.md) skill is separate from this accountable
+verdict workflow. It produces a read-only technical findings report for code
+changes but does not prepare, infer, or record a human verdict.
 
 ### Review artefacts
 
