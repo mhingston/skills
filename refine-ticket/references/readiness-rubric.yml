@@ -1,0 +1,142 @@
+rubric:
+  name: Agent-ready work item
+  version: 1
+  hardGates:
+    - id: summary-specific
+      label: Specific and unambiguous summary
+      passWhen: >
+        Names the concrete behavioural failure, desired change, or investigation
+        question without generic wording such as `Fix bug`, `Improve X`, or
+        `Refactor Y`.
+    - id: current-state-evidenced
+      label: Current state or problem is evidenced
+      passWhen: >
+        Describes the observable current behaviour or state and distinguishes
+        confirmed evidence from inference. Bugs include reproduction evidence or
+        another concrete observation path; investigations state what is unknown.
+    - id: desired-outcome-and-rationale
+      label: Desired outcome and rationale are clear
+      passWhen: >
+        States what should be true when the work is complete and why the change or
+        investigation matters now, without assuming an unapproved implementation.
+    - id: completion-criteria-present
+      label: Explicit completion criteria are present
+      passWhen: >
+        Contains visible acceptance criteria, completion criteria, or a definition
+        of done appropriate to the work type.
+    - id: completion-criteria-testable
+      label: Completion criteria are independently verifiable
+      passWhen: >
+        Every criterion has a concrete observable result, including relevant
+        boundary and failure behaviour. Reject `it should work`, `make it better`,
+        or an unmeasured improvement.
+    - id: scope-bounded
+      label: Scope and non-goals are bounded
+      passWhen: >
+        Defines one coherent outcome that can reasonably fit a fresh agent context
+        and excludes plausible adjacent work. Open-ended cleanup or several
+        independently deliverable outcomes fail this gate.
+    - id: dependencies-accounted-for
+      label: Dependencies and blockers are accounted for
+      passWhen: >
+        Names every decision, access requirement, external dependency, and blocking
+        work item needed for pickup. Declared tracker blockers may remain open, but
+        no hidden blocker or unresolved product decision remains.
+    - id: verification-defined
+      label: Verification approach is defined
+      passWhen: >
+        States the observable checks, test seams, commands, environments, or
+        evidence needed to establish completion, including any validation that
+        cannot be automated.
+    - id: affected-area-identified
+      label: Affected domain or code area is identifiable
+      passWhen: >
+        Names the relevant product domain, service, subsystem, or ownership area in
+        durable terms. A tracker component is useful when already available but is
+        not mandatory.
+  conditionalGates:
+    - id: architecture-drawn
+      label: Component relationships are described
+      appliesWhen: >
+        The work crosses multiple components, services, processes, trust
+        boundaries, or deployment units and their connections affect correctness.
+      passWhen: >
+        A concise diagram or component map identifies the affected components and
+        material connections between them.
+      skipWhen: >
+        The change is contained within one component and no cross-component
+        relationship is needed to understand or verify it.
+    - id: interfaces-defined
+      label: Changed interfaces are defined
+      appliesWhen: >
+        The work adds or changes a public function, type, API route, command,
+        configuration shape, message, event, schema, or integration contract.
+      passWhen: >
+        Enumerates the changed interface, inputs, outputs, compatibility behaviour,
+        and relevant error contract in stable terms.
+      skipWhen: >
+        No externally or cross-component observable interface changes.
+    - id: state-transitions-specified
+      label: Stateful transitions are specified
+      appliesWhen: >
+        Behaviour depends on lifecycle state, ordering, retries, workflow status,
+        or transitions between persistent states.
+      passWhen: >
+        Names the material states, triggering events, valid transitions, and
+        invalid or terminal behaviour.
+      skipWhen: >
+        The work is a stateless transformation or does not change lifecycle
+        behaviour.
+    - id: invariants-specified
+      label: Material invariants are specified
+      appliesWhen: >
+        Correctness depends on a business rule, precondition, postcondition, data
+        constraint, concurrency guard, permission rule, or compatibility promise.
+      passWhen: >
+        States the constraints that must always hold and the behaviour when an
+        attempted operation would violate them.
+      skipWhen: >
+        No non-obvious invariant beyond the testable completion criteria governs
+        the change.
+    - id: data-change-defined
+      label: Existing data treatment is defined
+      appliesWhen: >
+        The work changes persisted data, schemas, retention, backfills, imports,
+        exports, or interpretation of existing records.
+      passWhen: >
+        Defines migration or compatibility behaviour, validation, failure recovery,
+        and treatment of existing and partially migrated data.
+      skipWhen: >
+        The work neither changes persisted data nor changes how existing data is
+        interpreted.
+    - id: rollout-and-recovery-defined
+      label: Rollout and recovery are defined
+      appliesWhen: >
+        The change is difficult to reverse, operationally risky, externally
+        coordinated, migration-heavy, or requires staged enablement.
+      passWhen: >
+        Defines rollout order, observability, stop conditions, and rollback or
+        recovery behaviour.
+      skipWhen: >
+        The change is local, low-risk, and straightforward to reverse through the
+        normal delivery process.
+    - id: security-and-privacy-defined
+      label: Security and privacy constraints are defined
+      appliesWhen: >
+        The work affects authentication, authorisation, secrets, untrusted input,
+        sensitive data, privacy, tenancy, or another trust boundary.
+      passWhen: >
+        States the relevant trust assumptions, allowed and denied behaviour, data
+        handling constraints, and abuse or failure cases to verify.
+      skipWhen: >
+        No trust boundary, permission, sensitive-data, or privacy behaviour changes.
+    - id: performance-target-defined
+      label: Performance target is measurable
+      appliesWhen: >
+        Performance, capacity, latency, throughput, resource use, or scale is a
+        reason for the work or a material acceptance constraint.
+      passWhen: >
+        Defines the workload, baseline, target, measurement method, and acceptable
+        trade-offs or regression bounds.
+      skipWhen: >
+        Performance is not a motivation or material constraint for the work.

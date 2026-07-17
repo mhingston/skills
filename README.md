@@ -59,6 +59,7 @@ under `agents/`, but skill directories must not read files from an agent package
 | Agent | Use it for |
 | --- | --- |
 | [`pr-review`](agents/pr-review.md) | Coordinate proportionate PR explanation, human-verdict preparation, explicit human input, and revision-bound verdict recording without approving or merging. |
+| [`refine`](agents/refine.md) | Classify selected work, clarify unresolved decisions, refine one bounded ticket or split larger clear work into agent-ready vertical slices, resolve where new tickets belong, and update the selected tracker after human approval. |
 
 ## Public skill catalogue
 
@@ -68,31 +69,64 @@ under `agents/`, but skill directories must not read files from an agent package
 | [`audit-me`](audit-me/SKILL.md) | Audit recurring work and connected work surfaces for dropped commitments, fragmented context, and automation opportunities. |
 | [`coach-me`](coach-me/SKILL.md) | Analyse how a user collaborates with advanced models and produce focused coaching and a personalised AI working manual. |
 | [`create-pr`](create-pr/SKILL.md) | Investigate a branch, gather proportionate evidence, assess comprehension risk, and create one reviewable pull request without approving or merging it. |
-| [`deep-learning`](deep-learning/SKILL.md) | Turn passive study into active understanding through explanation, retrieval, diagnosis, application, and reinforcement. |
 | [`git-archaeologist`](git-archaeologist/SKILL.md) | Use repository history to identify ownership patterns, defect hotspots, maintenance risk, and investigation priorities. |
 | [`lsp-config`](lsp-config/SKILL.md) | Detect repository languages and safely reconcile GitHub Copilot CLI LSP configuration and VS Code extension recommendations. |
 | [`review`](review/SKILL.md) | Perform a standalone, read-only technical review across correctness, security, spec alignment, tests, and design. |
 | [`repository-ontology`](repository-ontology/SKILL.md) | Assess whether a repository needs an ontology, establish the smallest evidence-backed model, and validate its usefulness for people and agents. |
 | [`session-lessons`](session-lessons/SKILL.md) | Analyse multiple sessions for recurring friction and effective patterns that deserve durable codification. |
 | [`skill-creator`](skill-creator/SKILL.md) | Create new skills, modify and improve existing skills, and measure skill performance. |
+| [`teach-me`](teach-me/SKILL.md) | Run measured tutoring, review, and learning-coach loops with durable receipts, spaced retrieval, misconceptions, and transfer evidence. |
 
 ## Workflow-internal skill modules
 
-These modules are implementation details of `pr-review`, not public entry
-points:
+These modules are implementation details of public agent workflows, not public
+entry points:
 
-| Module | Owned stage |
-| --- | --- |
-| [`explain-diff`](explain-diff/SKILL.md) | Build a causal explainer after the agent classifies comprehension risk as moderate or high. |
-| [`human-verdict-gate`](human-verdict-gate/SKILL.md) | Prepare the revision-specific decision packet after any required explainer. |
-| [`record-verdict`](record-verdict/SKILL.md) | Persist the human verdict only after the human stop and a fresh head-SHA check. |
+| Module | Owning agent | Owned stage |
+| --- | --- | --- |
+| [`explain-diff`](explain-diff/SKILL.md) | `pr-review` | Build a causal explainer after the agent classifies comprehension risk as moderate or high. |
+| [`human-verdict-gate`](human-verdict-gate/SKILL.md) | `pr-review` | Prepare the revision-specific decision packet after any required explainer. |
+| [`record-verdict`](record-verdict/SKILL.md) | `pr-review` | Persist the human verdict only after the human stop and a fresh head-SHA check. |
+| [`refine-ticket`](refine-ticket/SKILL.md) | `refine` | Assess and draft one bounded work item against the agent-ready readiness contract. |
+| [`split-work`](split-work/SKILL.md) | `refine` | Decompose a clear multi-ticket outcome into vertical slices and an acyclic dependency graph. |
 
 Each carries `user-invocable: false`. This field is a runtime extension, not a
 portable guarantee of the base Agent Skills format. Runtimes that support it
 hide the module from the user-facing command menu while leaving it available to
-the agent. Other harness adapters must enforce equivalent visibility; the
-modules' own invocation contracts also refuse direct execution without
-`pr-review` context.
+the owning agent. Other harness adapters must enforce equivalent visibility;
+the modules' own invocation contracts also refuse direct execution without the
+owning agent's context.
+
+## Work-refinement workflow
+
+The `refine` agent is the only public entry point for selected-work refinement.
+It distinguishes one bounded ticket, clear multi-ticket work, and work that is
+still too uncertain to split:
+
+```text
+inspect and classify selected work
+                    ↓
+       ┌────────────┼────────────┐
+       ↓            ↓            ↓
+ refine-ticket   discovery    split-work
+       ↓            ↓            ↓
+       │       reclassify    refine-ticket for
+       │                    every proposed child
+       └────────────┬────────────┘
+                    ↓
+         explicit human approval
+                    ↓
+       tracker write, read-back, verify
+```
+
+`refine-ticket` owns the single-item readiness assessment and durable rewrite.
+`split-work` owns vertical slicing and dependency-graph design but returns only
+drafts. Before invoking it, the agent resolves a concrete publication target
+from the source, explicit user direction, or canonical repository configuration;
+when none is unambiguous, it offers only connected writable destinations plus a
+draft-only fallback. The agent then refines every child before publication,
+keeps unresolved fog out of implementation tickets, and owns all tracker
+mutations.
 
 ## Pull-request review workflow
 
@@ -207,7 +241,9 @@ Install or adapt canonical agent definitions from `agents/` separately according
 to the harness's agent format. Public skills remain directly invocable. To use
 `pr-review`, install its agent definition together with `explain-diff`,
 `human-verdict-gate`, and `record-verdict`, then expose only the `pr-review`
-agent as the review entry point.
+agent as the review entry point. To use `refine`, install its agent definition
+together with `refine-ticket` and `split-work`, then expose only the `refine`
+agent as the refinement entry point.
 
 Examples:
 
