@@ -9,7 +9,7 @@ Detect the languages used in the current repository, update the project-level
 GitHub Copilot CLI LSP configuration, merge VS Code extension recommendations,
 and verify the resulting files.
 
-**Announce at start:** "I'm using the lsp-config-sync skill to detect languages and
+**Announce at start:** "I'm using the lsp-config skill to detect languages and
 refresh the Copilot/VS Code LSP wiring."
 
 ## Requirements
@@ -49,7 +49,7 @@ node <skill-directory>/scripts/detect-languages.mjs [<workspace-root>]
 For a project-local installation, this is commonly:
 
 ```bash
-node .github/skills/lsp-config-sync/scripts/detect-languages.mjs
+node .github/skills/lsp-config/scripts/detect-languages.mjs
 ```
 
 Read the JSON output. If the user only asked what would be configured, report
