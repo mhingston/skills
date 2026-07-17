@@ -58,6 +58,7 @@ under `agents/`, but skill directories must not read files from an agent package
 
 | Agent | Use it for |
 | --- | --- |
+| [`implement`](agents/implement.md) | Orchestrate a ready ticket through a ticket-keyed feature branch, delegated RED/GREEN TDD implementation, independent technical review, full build/test gates, and pull-request creation. |
 | [`pr-review`](agents/pr-review.md) | Coordinate proportionate PR explanation, human-verdict preparation, explicit human input, and revision-bound verdict recording without approving or merging. |
 | [`refine`](agents/refine.md) | Classify selected work, clarify unresolved decisions, refine one bounded ticket or split larger clear work into agent-ready vertical slices, resolve where new tickets belong, and update the selected tracker after human approval. |
 
@@ -84,6 +85,7 @@ entry points:
 
 | Module | Owning agent | Owned stage |
 | --- | --- | --- |
+| [`implement-ticket`](implement-ticket/SKILL.md) | `implement` | Implement or remediate one bounded ticket with observable RED/GREEN TDD evidence, leaving review, commit, push, and PR creation to the agent. |
 | [`explain-diff`](explain-diff/SKILL.md) | `pr-review` | Build a causal explainer after the agent classifies comprehension risk as moderate or high. |
 | [`human-verdict-gate`](human-verdict-gate/SKILL.md) | `pr-review` | Prepare the revision-specific decision packet after any required explainer. |
 | [`record-verdict`](record-verdict/SKILL.md) | `pr-review` | Persist the human verdict only after the human stop and a fresh head-SHA check. |
@@ -96,6 +98,36 @@ hide the module from the user-facing command menu while leaving it available to
 the owning agent. Other harness adapters must enforce equivalent visibility;
 the modules' own invocation contracts also refuse direct execution without the
 owning agent's context.
+
+## Ticket implementation workflow
+
+The `implement` agent is the public entry point for shipping one ready ticket.
+It adds one internal implementation module and reuses the existing public
+`review` and `create-pr` skills instead of duplicating their responsibilities:
+
+```text
+ingest canonical ticket and verify readiness
+                    ↓
+create feature/<TICKET-KEY> from the pinned base
+                    ↓
+implement-ticket in a fresh worker — observe RED, then GREEN
+                    ↓
+review in a separate fresh worker
+                    ↓
+[blocker or major only] implement-ticket remediation, then re-review
+                    ↓
+complete project tests and build must pass after the last code change
+                    ↓
+commit and push the reviewed revision
+                    ↓
+create-pr — inspect the committed diff and open the PR
+```
+
+The coordinator never edits product code or reviews its own implementation.
+Missing requirements route back to refinement, while failed or unavailable
+build and test gates stop before PR creation. Repository-controlled commands run
+only behind an explicit credential and network isolation boundary. The exact
+branch name contains the ticket key only, such as `feature/PAY-1234`.
 
 ## Work-refinement workflow
 
