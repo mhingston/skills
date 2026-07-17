@@ -71,6 +71,17 @@ Classify concepts into one or more of these layers:
 
 Do not collapse a domain concept into the class or table currently implementing it.
 
+### Separate schema, instances, constraints, and policy
+
+Classify each material statement as one of:
+
+- **Schema knowledge (TBox)**: classes, properties, hierarchies, and general restrictions.
+- **Instance knowledge (ABox)**: facts about concrete repository artefacts, systems, people, or events.
+- **Validation constraints**: conditions that graph or instance data must satisfy.
+- **Operational policy**: mutable permissions, workflows, approvals, and organisational rules.
+
+Do not generalise an observed repository instance into a universal ontology axiom unless authoritative evidence explicitly supports that generalisation. Do not treat a validation rule or mutable policy as an essential domain truth.
+
 ### Preserve provenance and uncertainty
 
 For each material assertion, record:
@@ -306,7 +317,55 @@ Prefer precise relationships such as:
 
 Avoid vague relationships such as `relatedTo` unless no more specific meaning is justified.
 
-### 8. Model constraints separately from definitions
+### 8. Generate candidate formal axioms
+
+Perform this step only when the verdict requires a formal ontology.
+
+Before generating axioms, declare:
+
+- the target ontology language and serialisation;
+- the permitted axiom and expression types;
+- naming and identifier conventions;
+- the expected ontology profile or expressivity boundary;
+- whether the task concerns schema knowledge, instance knowledge, or both.
+
+Permit only the constructs required by the competency questions. These may include:
+
+- class, property, and individual declarations;
+- class assertions and subclass relationships;
+- disjointness and complements;
+- object-property assertions;
+- property domains and ranges;
+- symmetric and asymmetric property characteristics;
+- property hierarchies;
+- existential, universal, and cardinality restrictions.
+
+Do not introduce a construct merely because the target language supports it.
+
+Translate evidence into candidate axioms using a constrained, structured output format. For every candidate record:
+
+```yaml
+candidate_id: AX-001
+knowledge_kind: schema # schema | instance
+interpretation: Every service that publishes an event is an event publisher.
+formal_expression: SubClassOf(ObjectIntersectionOf(Service ObjectSomeValuesFrom(publishes Event)) EventPublisher)
+evidence:
+  - path: docs/eventing.md
+    location: section 3
+status: proposed
+expected_inferences:
+  - A service publishing an Event is classified as EventPublisher.
+potential_unintended_inferences: []
+confidence: medium
+```
+
+Verify that every referenced entity already exists or is intentionally declared as a new, evidence-backed candidate. Do not introduce entities, restrictions, cardinalities, inverses, disjointness, or property characteristics without supporting evidence.
+
+Use an explicit grammar or schema, a small set of reviewed examples covering the permitted axiom families, constrained or validated structured output, and low-variance generation settings where available. Separate generation from critique and validation. Fall back to human-authored formalisation when ambiguity remains.
+
+Candidate axioms are proposals. They must not directly modify the canonical ontology. Prefer constrained prompting and validation before fine-tuning. Consider fine-tuning only when the target formalism is stable, a sufficiently large reviewed corpus exists, demand is repeated, and measured evidence shows that constrained prompting is inadequate.
+
+### 9. Model constraints separately from definitions
 
 Distinguish:
 
@@ -336,7 +395,7 @@ reversible: false
 
 Do not encode mutable organisational policy as an essential truth about the domain.
 
-### 9. Evaluate agentic suitability
+### 10. Evaluate agentic suitability
 
 When the ontology will support agents, check whether it represents:
 
@@ -355,7 +414,20 @@ When the ontology will support agents, check whether it represents:
 
 An agent-facing ontology must help constrain or validate behaviour, not merely supply additional prompt context.
 
-### 10. Validate against evidence and examples
+### 11. Work incrementally on large repositories
+
+When the relevant evidence cannot be reviewed in one bounded context:
+
+- partition evidence by domain boundary, subsystem, semantic layer, or competency question;
+- extract candidate terms independently;
+- reconcile identifiers and meanings before generating cross-boundary relationships;
+- construct the high-level hierarchy before adding detailed relationships and restrictions;
+- maintain an unresolved-conflict register across batches;
+- rerun global consistency and competency-question validation after reconciliation.
+
+Do not merge independently generated fragments without checking for duplicated concepts, conflicting definitions, incompatible identity criteria, and accidental cross-layer equivalence.
+
+### 12. Validate against evidence and examples
 
 Validation must include:
 
@@ -390,6 +462,39 @@ Check for:
 - terms without evidence;
 - implementation details incorrectly promoted to domain concepts.
 
+#### Formal ontology validation
+
+When formal axioms are generated or changed:
+
+1. Parse the generated serialisation.
+2. Load it into a temporary ontology or isolated graph.
+3. Verify that referenced entities are declared or intentionally external.
+4. Check logical consistency and class satisfiability with an appropriate reasoner.
+5. Detect duplicate, redundant, and semantically equivalent axioms.
+6. Compare every axiom against its cited evidence and natural-language interpretation.
+7. Test the intended competency-question inferences.
+8. Inspect unintended inferred relationships and classifications.
+9. Produce an ontology diff for human review.
+10. Merge only accepted axioms and preserve rejected candidates with their verdicts.
+
+Reasoner success proves only that the ontology is mechanically consistent under its semantics. It does not prove that the model expresses the intended business or architectural meaning. Keep mechanical validation and domain review as separate gates.
+
+#### Candidate-generation evaluation
+
+For an LLM-assisted formalisation pipeline, measure:
+
+- syntactic validity rate;
+- logical consistency and satisfiability rate;
+- unsupported-axiom rate;
+- missing-required-axiom rate;
+- unnecessary-entity rate;
+- semantic equivalence to reviewed reference examples;
+- competency-question pass rate;
+- repeated-run agreement;
+- human acceptance, correction, and rejection rates.
+
+Do not use token-level or string-exact accuracy as the sole quality measure. Equivalent axioms may have different serialisations, while syntactically valid axioms may encode materially different meanings.
+
 #### Repository traceability
 
 Verify that material concepts can be traced to current repository evidence.
@@ -398,7 +503,7 @@ Verify that material concepts can be traced to current repository evidence.
 
 Consider whether routine refactoring would incorrectly change domain identity or invalidate the ontology.
 
-### 11. Evaluate ontology maturity
+### 13. Evaluate ontology maturity
 
 Assess each dimension using:
 
@@ -424,13 +529,14 @@ Dimensions:
 
 Do not hide serious gaps behind a composite numerical score.
 
-### 12. Apply human judgement gates
+### 14. Apply human judgement gates
 
 Human review is required before:
 
 - accepting canonical business definitions;
 - resolving disputed terminology;
 - declaring two concepts equivalent;
+- accepting generated formal axioms into the canonical ontology;
 - changing identifiers used by other systems;
 - importing a broad external ontology;
 - introducing business or compliance rules;
@@ -439,7 +545,7 @@ Human review is required before:
 
 Present the evidence, alternatives, and consequences. Do not make the decision implicitly.
 
-### 13. Establish repository artefacts
+### 15. Establish repository artefacts
 
 Adapt filenames to repository conventions, but prefer a structure similar to:
 
@@ -452,6 +558,7 @@ ontology/
 ├── concept-model.yaml
 ├── mappings.md
 ├── evidence.md
+├── candidates/
 ├── examples/
 ├── decisions/
 └── validation/
@@ -469,7 +576,7 @@ ontology/
 
 The human-readable model and decision record must remain understandable without requiring an ontology editor.
 
-### 14. Define lifecycle and ownership
+### 16. Define lifecycle and ownership
 
 Document:
 
@@ -511,6 +618,8 @@ operational-ontology
 
 ## Candidate concepts and relationships
 
+## Candidate formal axioms
+
 ## Reusable vocabularies
 
 ## Proposed formalisation level
@@ -524,6 +633,10 @@ operational-ontology
 ## Recommended repository artefacts
 
 ## Validation approach
+
+## Formal validation results
+
+## Candidate-generation metrics
 
 ## Next implementation increment
 ```
@@ -539,6 +652,9 @@ For an establishment task, also provide the proposed repository files or patches
 - Do not silently resolve disputed terminology.
 - Do not introduce RDF, OWL, or a graph database unless the competency questions justify them.
 - Do not combine facts, policies, permissions, and hypotheses into one undifferentiated model.
+- Do not generalise a repository instance into a universal axiom without authoritative evidence.
+- Do not allow generated candidate axioms to update the canonical ontology directly.
+- Do not treat syntactic validity or reasoner consistency as proof of semantic correctness.
 - Do not let the ontology become a parallel source of truth disconnected from repository evidence.
 - Do not allow an agent to approve its own canonical semantic changes.
 - Prefer a small ontology that is tested and used over a comprehensive ontology that is not operational.
