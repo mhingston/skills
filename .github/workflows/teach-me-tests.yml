@@ -1,0 +1,34 @@
+name: Teach Me tests
+
+on:
+  pull_request:
+    paths:
+      - "teach-me/**"
+      - ".github/workflows/teach-me-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "teach-me/**"
+      - ".github/workflows/teach-me-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Run teach-me state tests
+        run: node --test teach-me/scripts/learning-state.test.mjs
+      - name: Run teach-me memory-engine tests
+        run: node --test teach-me/scripts/learning-engine.test.mjs
+      - name: Run deterministic scheduler selftest
+        run: node teach-me/scripts/learning-engine.mjs selftest
