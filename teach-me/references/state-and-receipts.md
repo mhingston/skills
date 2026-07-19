@@ -1,6 +1,6 @@
 # State and Receipts
 
-Use the helper for deterministic dates, queues, state replay, and statistics. It requires Node.js 18+ and uses only built-in modules; no npm install is required.
+Use the learning engine for deterministic dates, queues, state replay, scheduling projections, and statistics. It requires Node.js 18+ and uses only built-in modules; no npm install is required.
 
 ## Contents
 
@@ -22,14 +22,17 @@ State defaults to `~/.teach-me/`. Override it with `TEACH_ME_HOME` when isolatio
 learner.json
 topics/<topic>.json
 receipts/<topic>.jsonl
+scheduler-receipts/<topic>.jsonl
 milestones/<topic>.jsonl
 references/<topic>/<reference>.json
 pending.json
 ```
 
-Receipts are append-only evidence. Topic node state is derived from them and repaired on read. Free learner text must enter through a JSON file or stdin, never a shell argument.
+Canonical assessment receipts are append-only evidence. Topic node state is compatibility state derived from them and repaired on read. Scheduler receipts are versioned, replayable projections derived from the same canonical evidence. Free learner text must enter through a JSON file or stdin, never a shell argument.
 
 Set `TEACH_ME_TODAY=YYYY-MM-DD` only for deterministic tests.
+
+Use `learning-engine.mjs` as the entry point. It proxies compatibility commands to `learning-state.mjs`, automatically synchronizes scheduler projections after state-changing assessment commands, and owns the authoritative due queue.
 
 ## Topic input
 
@@ -85,13 +88,14 @@ Rules enforced by the helper:
 Commands:
 
 ```bash
-node <skill-dir>/scripts/learning-state.mjs add-topic --file <topic.json>
-node <skill-dir>/scripts/learning-state.mjs topics
-node <skill-dir>/scripts/learning-state.mjs status --topic <topic>
-node <skill-dir>/scripts/learning-state.mjs next --topic <topic>
+node <skill-dir>/scripts/learning-engine.mjs add-topic --file <topic.json>
+node <skill-dir>/scripts/learning-engine.mjs topics
+node <skill-dir>/scripts/learning-engine.mjs status --topic <topic>
+node <skill-dir>/scripts/learning-engine.mjs scheduler-status --topic <topic>
+node <skill-dir>/scripts/learning-engine.mjs next --topic <topic>
 ```
 
-`status --topic` returns the full source ledger. When revising a graph with `add-topic --replace`, omitted `mission`, `sources`, and `source_gaps` fields retain their existing values; pass `mission: null` or empty source arrays explicitly to clear them.
+`status --topic` returns the compatibility topic state and source ledger. `scheduler-status --topic` returns the authoritative FSRS memory projection. When revising a graph with `add-topic --replace`, omitted `mission`, `sources`, and `source_gaps` fields retain their existing values; pass `mission: null` or empty source arrays explicitly to clear them.
 
 ## Stash and isolated assessment
 
@@ -111,8 +115,8 @@ After a cold production and confidence gate, create a stash input:
 Then:
 
 ```bash
-node <skill-dir>/scripts/learning-state.mjs stash add --file <attempt.json>
-node <skill-dir>/scripts/learning-state.mjs stash list
+node <skill-dir>/scripts/learning-engine.mjs stash add --file <attempt.json>
+node <skill-dir>/scripts/learning-engine.mjs stash list
 ```
 
 The helper adds the node claim, probe, rubric, timestamp, and an `attempt_id`. Pass the listed item to the assessor.
@@ -133,10 +137,10 @@ Settle with an array or one object:
 ```
 
 ```bash
-node <skill-dir>/scripts/learning-state.mjs settle --file <assessment.json>
+node <skill-dir>/scripts/learning-engine.mjs settle --file <assessment.json>
 ```
 
-Settlement is idempotent by `attempt_id`. A retry cannot apply the same receipt twice.
+Settlement is idempotent by `attempt_id`. A retry cannot apply the same canonical receipt twice. Successful settlement also synchronizes any missing scheduler projections and returns a `scheduler_sync` result.
 
 ## Direct review receipt
 
@@ -162,20 +166,20 @@ For a routine review graded in the current context, write one receipt input and 
 Generate a safe id before writing the receipt if needed:
 
 ```bash
-node <skill-dir>/scripts/learning-state.mjs new-id
-node <skill-dir>/scripts/learning-state.mjs record --file <receipt.json>
+node <skill-dir>/scripts/learning-engine.mjs new-id
+node <skill-dir>/scripts/learning-engine.mjs record --file <receipt.json>
 ```
 
-`record` also treats `receipt_id` idempotently.
+`record` treats `receipt_id` idempotently and synchronizes the scheduler projection. Use the returned scheduler data or `scheduler-status`; do not infer the next interval from the grade yourself.
 
 ## Decision-grade milestones
 
 Milestones preserve sparse interpretations that affect future teaching; they do not replace receipts. Generate an id, then pass one object through a file or stdin:
 
 ```bash
-node <skill-dir>/scripts/learning-state.mjs new-id --kind milestone
-node <skill-dir>/scripts/learning-state.mjs milestone add --file <milestone.json>
-node <skill-dir>/scripts/learning-state.mjs milestone list --topic bayes-for-diagnostics
+node <skill-dir>/scripts/learning-engine.mjs new-id --kind milestone
+node <skill-dir>/scripts/learning-engine.mjs milestone add --file <milestone.json>
+node <skill-dir>/scripts/learning-engine.mjs milestone list --topic bayes-for-diagnostics
 ```
 
 ```json
@@ -209,47 +213,58 @@ Save compact Markdown only after the learner has retrieved the underlying knowle
 ```
 
 ```bash
-node <skill-dir>/scripts/learning-state.mjs reference add --file <reference.json>
-node <skill-dir>/scripts/learning-state.mjs reference list --topic bayes-for-diagnostics
-node <skill-dir>/scripts/learning-state.mjs reference show --topic bayes-for-diagnostics --reference positive-test-checklist
+node <skill-dir>/scripts/learning-engine.mjs reference add --file <reference.json>
+node <skill-dir>/scripts/learning-engine.mjs reference list --topic bayes-for-diagnostics
+node <skill-dir>/scripts/learning-engine.mjs reference show --topic bayes-for-diagnostics --reference positive-test-checklist
 ```
 
 Use only `learner` or `learner-edited` authorship. At least one linked receipt must be learner-produced and `recalled`; a `source: "told"` receipt never qualifies. Revise an existing reference with `reference add --file <reference.json> --replace`; the original `created_at` is preserved. A saved reference never advances scheduling or mastery.
 
 ## Grades and scheduling
 
-Use only:
+Use only these rubric grades:
 
 - `recalled`: every rubric criterion is present;
 - `partial`: the core is present but required criteria are missing;
 - `lapsed`: the core is absent or materially wrong.
 
-The helper applies a transparent successive-relearning schedule to retention receipts. It is intentionally not FSRS and must not be described as personalized interval optimization.
+The engine maps evidence to scheduler ratings conservatively:
 
-- recalled: advance through 1, 3, 7, 14, 30, 60, and 120-day intervals;
-- partial: schedule tomorrow and step back one stage;
-- lapsed: schedule tomorrow and step back two stages;
-- transfer: update capability evidence but never lower or reschedule memory state.
+- `recalled` → `good`;
+- `partial` → `hard`;
+- `lapsed` → `again`;
+- `source: "told"` → `hard`, regardless of an optimistic grade;
+- `transfer` → no memory transition.
 
-Node `mastered` becomes true only after delayed retrieval reaches the durable stage and any declared transfer probe has succeeded.
+The FSRS-4.5 projection stores per-node stability, difficulty, last review, due date, repetitions, and lapses. Its default policy targets 90% retention with a fixed interval multiplier of 1.0. Per-item state adapts from review history, but the global parameter vector is not fitted to the learner.
+
+Every scheduler projection records the engine version, policy, mapped rating, before-state, after-state, interval, and due date. Run `scheduler-replay` to reproduce transitions and `scheduler-doctor` to detect missing or conflicting projections.
+
+Transfer updates capability evidence but never lowers or reschedules memory state. Node mastery still requires delayed retrieval reaching the compatibility durable stage and any declared transfer probe succeeding; use the FSRS due queue for actual review timing.
+
+Read [memory-engine.md](memory-engine.md) for the full boundary and audit contract.
 
 ## Queues and coaching
 
 ```bash
-node <skill-dir>/scripts/learning-state.mjs due --limit 10
-node <skill-dir>/scripts/learning-state.mjs stats
-node <skill-dir>/scripts/learning-state.mjs misconceptions
-node <skill-dir>/scripts/learning-state.mjs doctor
+node <skill-dir>/scripts/learning-engine.mjs due --limit 10
+node <skill-dir>/scripts/learning-engine.mjs due-summary --limit 5
+node <skill-dir>/scripts/learning-engine.mjs stats
+node <skill-dir>/scripts/learning-engine.mjs misconceptions
+node <skill-dir>/scripts/learning-engine.mjs doctor
+node <skill-dir>/scripts/learning-engine.mjs scheduler-doctor
+node <skill-dir>/scripts/learning-engine.mjs export
 ```
 
 Interpret statistics conservatively:
 
 - `loop_closure` measures encoded nodes with at least one later review;
 - `review_recall` reports outcomes only for attempted reviews and always includes `n`;
-- `unmeasured_due` is the count of currently due items absent from those outcomes;
+- the engine's `memory.due` block is authoritative for currently due work;
 - `calibration` is omitted when confidence was not explicitly recorded;
 - transfer stays separate from recall;
-- thin samples remain counts, not confident strategy claims.
+- thin samples remain counts, not confident strategy claims;
+- unsynced scheduler projections are integrity warnings, not learning outcomes.
 
 ## Stateless fallback packet
 
@@ -270,4 +285,4 @@ next reviews (simple fallback dates):
 return cue (only if volunteered):
 ```
 
-Do not claim continuity beyond what the packet preserves.
+Do not claim continuity beyond what the packet preserves. Do not call fallback dates FSRS or personalized scheduling.
