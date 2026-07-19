@@ -14,7 +14,7 @@ A skill can guide this pattern but cannot create a programmatic runtime that the
 1. Isolate the candidate stage and state its required inputs, final output, and evidence.
 2. Classify the stage as deterministic orchestration or adaptive reasoning.
 3. Detect which execution modes the active harness actually supports.
-4. Choose native programmatic calling, a local script, a composite tool, or direct calls using the routing rules below.
+4. Choose native programmatic calling, a local script, a composite MCP tool, direct calls, or subagents using the routing rules below.
 5. Define tool eligibility, schemas, limits, concurrency, retries, termination, and failure output before execution.
 6. Keep approval-sensitive writes and semantic decisions outside generated or unattended code by default.
 7. Execute once, preserving the evidence required for final reasoning and validation.
@@ -68,7 +68,6 @@ Parallel subagents are not a drop-in replacement. Use them for independent work 
 | No native runtime, but required operations are available through safe shell commands, local libraries, or authenticated HTTP APIs | Use a small local script with explicit inputs, outputs, limits, and cleanup. |
 | No native runtime and required operations exist only as agent or MCP tools | Use direct tool calls. For a recurring high-volume deterministic stage, expose one purpose-built composite MCP tool. |
 | Independent subtasks require model judgment | Use bounded subagents or fleet execution, then validate and aggregate their reports. |
-| Building an embedded Copilot application | The Copilot SDK is an optional host runtime, not a prerequisite for this skill. |
 
 Read the relevant reference before implementing:
 
@@ -76,7 +75,7 @@ Read the relevant reference before implementing:
 - [Anthropic Messages API](references/anthropic-messages.md)
 - [GitHub Copilot](references/github-copilot.md)
 
-If the harness is unknown, inspect its official documentation or observable tool contract. Do not infer native support from the presence of a shell, code-execution tool, skills, hooks, MCP, or an SDK.
+If the harness is unknown, inspect its official documentation or observable tool contract. Do not infer native support from the presence of a shell, code-execution tool, skills, hooks, MCP, or a general programmatic interface.
 
 ## 4. Define the execution contract
 
@@ -147,15 +146,17 @@ Use this only when the operations are genuinely accessible outside the agent too
 
 A local script cannot call arbitrary MCP or harness tools merely because the agent can. Fall back to direct calls rather than fabricating an integration.
 
-### Composite tool fallback
+### Composite MCP tool fallback
 
-For a recurring, stable, high-volume stage, implement one narrow tool that owns the deterministic fan-out and reduction.
+For a recurring, stable, high-volume stage, implement one narrow tool that owns deterministic fan-out and reduction behind a single agent-visible call.
 
 - expose a strict schema and bounded options;
-- keep credentials and authorization inside the tool boundary;
+- keep credentials and authorization inside the server boundary;
 - make writes separate from reads;
 - return evidence and partial-failure details;
 - prefer a domain operation such as `compare_inventory` over a generic unrestricted `execute_code` tool.
+
+A composite MCP tool is a prebuilt domain operation, not model-generated arbitrary code over all available tools. Document that difference.
 
 ### Subagent fallback
 
