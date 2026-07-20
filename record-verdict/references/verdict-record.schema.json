@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/schemas/human-verdict-record-v1.json",
+  "$id": "https://example.invalid/schemas/human-verdict-record-v2.json",
   "title": "Human Verdict Record",
   "type": "object",
   "additionalProperties": false,
@@ -18,18 +18,28 @@
     "containmentOrRollback",
     "evidenceReliedUpon",
     "evidenceLimitations",
+    "riskMapRef",
+    "riskDispositions",
     "residualRisk",
     "rationale",
     "conditions"
   ],
   "properties": {
-    "schemaVersion": { "const": "1.0" },
+    "schemaVersion": { "const": "2.0" },
     "repository": { "type": "string", "minLength": 1 },
     "pullRequestNumber": { "type": "integer", "minimum": 1 },
     "headSha": { "type": "string", "pattern": "^[0-9a-fA-F]{40}$" },
     "recordedAt": { "type": "string", "format": "date-time" },
     "accountableOwner": { "type": "string", "minLength": 1 },
-    "verdict": { "enum": ["approve", "approve-with-conditions", "redirect", "block", "defer"] },
+    "verdict": {
+      "enum": [
+        "approve",
+        "approve-with-conditions",
+        "redirect",
+        "block",
+        "defer"
+      ]
+    },
     "humanExplanation": { "type": "string", "minLength": 1 },
     "mostCredibleFailureMode": { "type": "string", "minLength": 1 },
     "detection": { "type": "string", "minLength": 1 },
@@ -44,26 +54,70 @@
       "minItems": 1,
       "items": { "type": "string", "minLength": 1 }
     },
-    "residualRisk": { "type": "string", "minLength": 1 },
-    "rationale": { "type": "string", "minLength": 1 },
-    "conditions": {
+    "riskMapRef": { "type": "string", "minLength": 1 },
+    "riskDispositions": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["description", "status"],
+        "required": [
+          "riskId",
+          "disposition",
+          "rationale",
+          "conditions"
+        ],
         "properties": {
-          "description": { "type": "string", "minLength": 1 },
-          "status": { "enum": ["open", "satisfied", "waived"] },
-          "evidence": { "type": "string" }
+          "riskId": { "type": "string", "minLength": 1 },
+          "disposition": {
+            "enum": [
+              "remediated",
+              "accepted",
+              "accepted-with-conditions",
+              "deferred-and-tracked",
+              "rejected-as-unsupported",
+              "redirected",
+              "blocked-pending-evidence",
+              "blocked-pending-specialist-review"
+            ]
+          },
+          "rationale": { "type": "string", "minLength": 1 },
+          "conditions": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/condition" }
+          },
+          "owner": { "type": ["string", "null"] },
+          "reviewPoint": { "type": ["string", "null"] },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
         }
       }
+    },
+    "residualRisk": { "type": "string", "minLength": 1 },
+    "rationale": { "type": "string", "minLength": 1 },
+    "conditions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/condition" }
     },
     "reviewOrExpiryPoint": { "type": ["string", "null"] },
     "specialistApprovals": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
-    "sourcePacket": { "type": ["string", "null"] }
+    "sourcePacket": { "type": ["string", "null"] },
+    "technicalReviewRef": { "type": ["string", "null"] }
+  },
+  "$defs": {
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "status"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["open", "satisfied", "waived"] },
+        "evidence": { "type": "string" }
+      }
+    }
   }
 }
