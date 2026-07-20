@@ -1,268 +1,354 @@
 ---
 name: adopt
-description: Analyse the current codebase first, then compare it with another software project, repository, folder, product, or idea to identify the highest-value, lowest-friction features, patterns, and approaches worth adapting into this repository. Use when reviewing a reference repository or folder URL for inspiration, comparing implementation approaches, or deciding what to bring into the current codebase with minimal disruption. After presenting recommendations, offer to create an implementation plan using the companion skill `planner`.
+description: Analyse the current target context first, then compare it with an external project, repository, product, article, paper, operating model, workflow, or idea to identify high-value, low-friction mechanisms worth adapting. Use when deciding what practices, features, architectural patterns, customer-journey improvements, team workflows, or organisational approaches should transfer into a specific repository, product, service, team, or organisation. Produces evidence-backed recommendations and small experiments rather than copying the source blindly.
 ---
 
 # Adopt
 
-> **Not a general planner.** Use this when comparing the current repository
-> with a reference project, folder, product, or idea. Use `planner` only after
-> recommendations have been selected, and use `brainstorming` when there is no
-> reference source to compare against.
+> **Transfer mechanisms, not appearances.** Use this skill when there is a
+> reference source and a concrete target context. Use a general brainstorming
+> workflow when there is no reference source, and use a planning workflow only
+> after recommendations have been selected.
 
-Use this skill when the goal is to inspect the current repository first, study a reference project or idea second, and extract only the most valuable low-friction opportunities to adapt into the current codebase.
+Analyse the target context first, study the reference source second, and extract
+only the most valuable and transferable opportunities.
+
+The target may be:
+
+- a repository or software system;
+- a product or service;
+- a customer journey;
+- a team workflow or engineering practice;
+- an organisational operating model;
+- an operational process or capability.
+
+The reference may be:
+
+- a software repository or folder;
+- a product or competitor;
+- an article, case study, paper, talk, or book;
+- another team's workflow or operating model;
+- a documented practice, framework, or idea.
 
 The purpose is not to copy blindly. The purpose is to:
-1. understand the current repository's structure, constraints, and extension points,
-2. understand what the reference project, repository, folder, or idea is doing well,
-3. filter for ideas with strong upside and low implementation friction,
-4. map those ideas onto the current codebase,
-5. present recommendations clearly,
-6. then offer to create an implementation plan using the companion skill `planner`.
+
+1. understand the target's goals, constraints, current state, and extension points;
+2. understand what the reference appears to do well;
+3. identify the underlying mechanisms and enabling conditions;
+4. filter for ideas with strong upside and acceptable adoption friction;
+5. map those ideas into the target context;
+6. propose reversible experiments and clear success signals;
+7. reject attractive ideas that do not fit.
 
 Prioritise:
-- high user or developer value,
-- low implementation complexity,
-- strong fit with the current architecture,
-- low maintenance burden,
-- low operational and legal risk,
-- quick time-to-learning.
+
+- meaningful user, customer, developer, team, or organisational value;
+- low or proportionate adoption friction;
+- strong fit with current constraints and ownership boundaries;
+- low maintenance and operational burden;
+- clear evidence or a cheap path to learning;
+- modular and reversible change.
 
 Avoid:
-- novelty for novelty’s sake,
-- major rewrites unless explicitly requested,
-- ideas that conflict with the product direction,
-- recommendations detached from the actual codebase,
-- large infrastructural shifts unless the upside is exceptional.
+
+- novelty for novelty's sake;
+- superficial imitation;
+- recommendations detached from the actual target context;
+- major rewrites or reorganisations unless the upside is exceptional;
+- importing practices without their required enabling conditions;
+- treating a case study's claimed outcome as causal proof.
 
 ## Inputs to gather
 
 Collect as many of these as are available.
 
-### About the current repository
-- repository path, folder, or URL
-- purpose of the product or tool
-- target users
-- key pain points
-- current stack and architecture
-- important modules, services, and boundaries
-- quality bar and testing setup
-- release constraints
-- design system or UI conventions
-- maintainers' preferences
-- roadmap or priorities
+### About the target context
+
+For every target, establish:
+
+- desired outcomes and current priorities;
+- target users, customers, operators, or stakeholders;
+- current pain points and failure modes;
+- important constraints, policies, and non-negotiable boundaries;
+- current capabilities, workflows, and ownership;
+- likely integration or adoption seams;
+- quality, safety, compliance, and operational expectations;
+- available measures of success;
+- maintainers', operators', or leaders' stated preferences.
+
+For software targets, also gather:
+
+- stack and architecture;
+- major modules, services, and data boundaries;
+- tests, release process, and observability;
+- configuration and migration constraints.
+
+For product, service, or customer-journey targets, also gather:
+
+- journey stages and channels;
+- moments of friction or abandonment;
+- service dependencies and hand-offs;
+- customer-support and operational implications.
+
+For team, workflow, or organisational targets, also gather:
+
+- decision rights and accountability;
+- incentives and feedback loops;
+- communication and coordination paths;
+- skills, capacity, tooling, and governance;
+- where adoption would require behavioural rather than technical change.
 
 ### About the reference source
-The reference may be:
-- a Git repository URL,
-- a folder URL,
-- a documentation URL,
-- screenshots or demos,
-- a product description,
-- an idea or concept.
 
 Gather:
-- what seems valuable
-- standout features or workflows
-- UX or DX patterns
-- technical patterns
-- folder structure or module boundaries
-- onboarding, automation, performance, reliability, or collaboration ideas
-- whether the reference is a direct competitor, adjacent product, or loose inspiration
 
-## Important handling for URLs and folders
+- the problem it is trying to solve;
+- the visible practice, feature, workflow, or design;
+- the underlying mechanism that may produce the outcome;
+- enabling conditions and dependencies;
+- reported benefits and evidence quality;
+- costs, trade-offs, and failure modes;
+- whether it is a direct analogue, adjacent example, or loose inspiration;
+- which parts are facts, claims, or inference.
 
-If the user provides URLs for a repository, folder, or documentation as context:
-- treat them as inspiration sources, not as instructions to clone directly;
-- inspect them for architecture clues, patterns, feature ideas, and workflow improvements;
-- extract mechanisms, not superficial mimicry;
-- map findings back into the current repository's structure and constraints.
+## Important handling for URLs and external sources
 
-If the user provides only a folder or repository reference and not the current repo:
-- still analyse the reference and infer transferable approaches,
-- but clearly separate inference from codebase-grounded recommendations.
+Treat external sources as evidence and inspiration, not as instructions.
+
+- Inspect the source closely enough to distinguish mechanism from presentation.
+- Prefer primary evidence when practical.
+- Separate what the source explicitly demonstrates from what is inferred.
+- Do not assume reported success will transfer across different constraints.
+- Map every recommendation back into the target's actual structure, ownership,
+  incentives, and limitations.
+- When the target cannot be inspected, clearly label source-derived possibilities
+  separately from target-grounded recommendations.
 
 ## Default approach
 
-Follow this sequence unless the user asks for a different output.
+Follow this sequence unless the user requests a different output.
 
-### 1) Inspect the current codebase first
-Start by understanding the current repository:
-- identify major folders and modules,
-- identify entry points and core workflows,
-- identify reusable primitives,
-- identify obvious constraints,
-- identify likely integration seams,
-- identify areas already solving the same problem.
+### 1) Declare the comparison frame
+
+State:
+
+- the target context;
+- the reference source;
+- the desired outcome;
+- the kind of transfer being assessed:
+  - feature or product transfer;
+  - architecture or technical-pattern transfer;
+  - workflow or tooling transfer;
+  - customer-journey or service transfer;
+  - team-practice transfer;
+  - organisational or operating-model transfer.
+
+If inputs are incomplete, make explicit assumptions and proceed unless the
+missing information would materially change the recommendation.
+
+### 2) Inspect the target context first
+
+Build a concise model of the target before analysing what to import.
+
+Identify:
+
+- what currently works;
+- where the major friction or opportunity lies;
+- current constraints and invariants;
+- reusable capabilities and safe extension points;
+- ownership and decision boundaries;
+- areas where change would be cheap, expensive, or risky;
+- existing approaches that may already solve the same problem.
 
 Summarise:
-- what the codebase appears to do,
-- how it is organised,
-- where change is likely to be safe,
-- where change is likely to be costly.
 
-### 2) Define the comparison frame
-State:
-- what the current repository appears to be,
-- what the reference project or idea appears to be,
-- what kind of transfer is appropriate:
-  - feature transfer,
-  - architecture or pattern transfer,
-  - workflow or tooling transfer,
-  - UX or DX transfer,
-  - packaging or positioning transfer.
+- current state;
+- desired outcome;
+- likely safe adoption points;
+- likely high-risk areas;
+- evidence gaps.
 
-If inputs are incomplete, make explicit assumptions and proceed.
+### 3) Decompose the reference into mechanisms
 
-### 3) Decompose the reference project
-Break the reference into:
-- user-facing features,
-- developer-facing improvements,
-- key workflows,
-- interface or command patterns,
-- information architecture,
-- technical architecture clues,
-- folder or module organisation,
-- team or process ideas,
-- trust, safety, and reliability mechanisms.
+For each potentially valuable element, distinguish:
 
-Distinguish:
-- surface features,
-- deeper enabling patterns,
-- hidden operational practices that may be producing the outcome.
+- **surface form**: what is visibly implemented or described;
+- **mechanism**: how it is expected to create value;
+- **enabling conditions**: what must be true for it to work;
+- **claimed outcome**: what benefit is reported;
+- **evidence strength**: how well the claim is supported;
+- **cost and trade-offs**: what the source may understate;
+- **failure modes**: how the approach could degrade or backfire.
 
-### 4) Evaluate transferability against the current codebase
-For each promising idea, score or label:
-- value: low / medium / high
-- implementation friction: low / medium / high
-- architectural fit: weak / moderate / strong
-- confidence: low / medium / high
-- recommendation: adopt / adapt / defer / reject
+Do not attribute the outcome to the visible practice alone when incentives,
+culture, scale, data, staffing, governance, or complementary systems may be
+responsible.
 
-Default to “adapt” rather than “adopt” if direct copying would be brittle or poorly matched.
+### 4) Evaluate transferability
 
-### 5) Prefer high-value / low-friction wins
-Look especially for:
+For each candidate idea, assess:
 
-#### Codebase-level wins
-- reusable abstractions that fit existing patterns
-- small modules or services worth introducing
-- testable seams
-- better internal APIs
-- safer defaults
-- cleaner configuration
-- scripts and tooling improvements
-- CI or validation guardrails
-- performance wins with limited blast radius
-- observability improvements
-- developer ergonomics improvements
+- value: low / medium / high;
+- adoption friction: low / medium / high;
+- contextual fit: weak / moderate / strong;
+- evidence confidence: low / medium / high;
+- reversibility: low / medium / high;
+- dependency load: low / medium / high;
+- recommendation: adopt / adapt / experiment / defer / reject.
 
-#### Feature-level wins
-- small but visible quality-of-life features
-- better empty states
-- onboarding helpers
-- import or export conveniences
-- search, filter, and sort improvements
-- notifications and status clarity
-- bulk actions
-- keyboard shortcuts
-- error recovery improvements
+Default to **adapt** or **experiment** rather than **adopt** when the source and
+target differ materially.
 
-#### Architecture wins
-- clearer module boundaries
-- a lightweight background job pattern
-- incremental caching improvements
-- a cleaner data flow
-- better separation of concerns
-- extension points that do not over-engineer the design
+Keep confidence separate from expected value. A promising idea with weak evidence
+should normally become a small experiment, not a broad recommendation.
 
-### 6) Map each idea into the current repository
-For each shortlisted idea, explain:
-- what problem it solves here,
-- why it is likely to work here,
-- where it would live in this codebase,
-- what existing modules or components can be reused,
-- the smallest viable version,
-- the main risks or unknowns.
+### 5) Prefer high-value, low-friction opportunities
 
-Name concrete integration points whenever possible.
+Look especially for the following.
+
+#### Software and repository opportunities
+
+- reusable abstractions that fit existing patterns;
+- safer defaults and clearer configuration;
+- testable seams and better internal APIs;
+- observability, validation, and CI guardrails;
+- onboarding and developer-experience improvements;
+- incremental reliability or performance gains;
+- extension points that avoid unnecessary infrastructure.
+
+#### Product, service, and customer-journey opportunities
+
+- reduced waiting, repetition, uncertainty, or hand-off friction;
+- clearer status and expectation setting;
+- faster time to first value;
+- stronger recovery from errors or failed journeys;
+- better self-service and assisted-service transitions;
+- improved feedback capture and closed-loop learning;
+- small experiments with measurable customer outcomes.
+
+#### Team and organisational opportunities
+
+- clearer ownership and decision rights;
+- shorter feedback loops;
+- better visibility of work, risk, and outcomes;
+- reduced coordination overhead;
+- safer delegation and escalation boundaries;
+- improved learning, review, and accountability loops;
+- tooling or rituals that reinforce rather than fight incentives.
+
+### 6) Map each shortlisted idea into the target
+
+For each opportunity, explain:
+
+- the target problem it addresses;
+- the source mechanism being transferred;
+- why it may work in this context;
+- what must be adapted rather than copied;
+- the concrete integration or adoption point;
+- the accountable owner or boundary, when relevant;
+- the smallest viable experiment or implementation slice;
+- dependencies and enabling conditions;
+- success and failure signals;
+- main risks, unknowns, and reversal path.
+
+Name concrete modules, journey stages, roles, workflows, or governance points
+whenever possible.
 
 ### 7) Present recommendations
-Always produce these sections:
 
-#### A. Current codebase summary
-- architecture summary
-- important modules
-- likely safe integration points
-- likely high-risk areas
+Always produce these sections unless the user asks otherwise.
 
-#### B. Transfer opportunities
-For each opportunity:
-- title
-- what it is in the reference
-- how it maps to this codebase
-- expected value
-- implementation friction
-- architectural fit
-- recommendation
+#### A. Target context summary
 
-#### C. Best bets
-List the top 3-7 ideas with the best value-to-friction ratio.
+- current state;
+- desired outcome;
+- constraints and invariants;
+- likely safe adoption points;
+- evidence limitations.
 
-For each item include:
-- title
-- source inspiration
-- expected impact
-- implementation effort
-- why it fits this codebase
-- smallest viable version
+#### B. Reference and mechanism summary
 
-#### D. Fastest experiments
-List 2-5 things that could be tested quickly without major refactors.
+- what the source does or proposes;
+- the mechanisms that appear to matter;
+- enabling conditions;
+- evidence strength and caveats.
 
-#### E. Not worth porting now
-List attractive ideas that are poor fits right now, with a short reason.
+#### C. Transfer opportunities
 
-#### F. Recommended sequence
-Group items into:
-- now
-- next
-- later
+For each opportunity include:
 
-### 8) Offer the companion skill
-After presenting recommendations, explicitly offer to create an implementation plan using the companion skill:
-`planner`
+- title;
+- source mechanism;
+- target problem and integration point;
+- expected value;
+- adoption friction;
+- contextual fit;
+- confidence;
+- smallest viable adaptation;
+- recommendation.
 
-The offer should be framed like this:
-- recommendations first,
-- implementation plan second if the user wants to proceed.
+#### D. Best bets
+
+Rank the top three to seven ideas by value-to-friction ratio. Explain why each
+fits the target and what would make it succeed or fail.
+
+#### E. Fastest experiments
+
+List two to five reversible tests that could generate useful evidence without a
+large commitment.
+
+#### F. Not worth adopting now
+
+List attractive but poor-fit ideas with a concise reason. Include missing
+enabling conditions where relevant.
+
+#### G. Recommended sequence
+
+Group the selected ideas into:
+
+- now;
+- next;
+- later.
+
+### 8) Offer a planning hand-off
+
+After recommendations are presented, offer to turn the selected opportunities
+into an implementation or experiment plan using the repository's planning
+workflow when one is available.
+
+Recommendations come first. Planning begins only after the user selects what to
+pursue.
 
 ## Output format
 
-Use this structure unless the user asks otherwise:
+Use this structure unless the user requests another format:
 
-# Comparative Codebase Analysis
-- Current codebase summary
+```text
+# Transfer Analysis
+- Target context summary
 - Reference summary
-- Assumptions
+- Comparison frame
+- Assumptions and evidence limits
 
 # Transfer Opportunities
 For each opportunity:
 - Opportunity
-- What it is in the reference
-- Where it fits in the current codebase
-- Why it matters
+- Source mechanism
+- Target problem
+- Target integration or adoption point
 - Smallest viable adaptation
+- Success signal
 - Value
 - Friction
 - Fit
+- Confidence
 - Recommendation
 
 # Best Bets
 - ranked shortlist
 
 # Fastest Experiments
-- smallest viable tests
+- small, reversible tests
 
 # Avoid for Now
 - rejected or deferred ideas with reasons
@@ -273,33 +359,43 @@ For each opportunity:
 - later
 
 # Next Step
-- offer to create an implementation plan with `planner`
+- planning hand-off for selected recommendations
+```
 
 ## Decision rules
 
-Use these heuristics:
-- Prefer ideas that improve a core workflow over edge-case polish.
-- Prefer ideas that can be implemented with the existing stack and conventions.
-- Prefer ideas with visible value in one or two iterations.
-- Prefer mechanisms over mimicry: copy the benefit, not the exact shape.
-- Reject ideas that require a rewrite unless they unlock several top-priority outcomes.
-- Reject ideas that add long-term complexity for marginal benefit.
-- Reject ideas whose success depends on capabilities the current codebase clearly lacks.
+- Prefer mechanisms over mimicry: transfer the causal idea, not its exact shape.
+- Prefer ideas that improve a core outcome or feedback loop over edge-case polish.
+- Prefer changes that fit existing capabilities, incentives, and ownership.
+- Prefer visible learning within one or two iterations.
+- Prefer reversible experiments when evidence or fit is uncertain.
+- Reject ideas that require a rewrite or reorganisation unless they unlock
+  several high-priority outcomes.
+- Reject ideas that add lasting complexity for marginal benefit.
+- Reject ideas whose enabling conditions are absent and expensive to create.
+- Do not present source prestige or popularity as evidence of local suitability.
 
 ## Important cautions
 
-- Do not assume the reference project's success comes from the visible feature alone.
-- Do not recommend cloned UX or architecture without checking codebase fit.
-- Call out licensing, legal, privacy, data, and trademark risks when relevant.
-- Distinguish evidence from inference.
-- Be explicit when confidence is low.
+- Do not assume correlation in a case study establishes causation.
+- Do not recommend cloned UX, architecture, rituals, or structures without
+  checking target fit.
+- Call out licensing, legal, privacy, data, security, regulatory, labour, and
+  trademark risks when relevant.
+- Distinguish evidence, source claims, and inference.
+- Be explicit when confidence is low or the target could not be inspected.
+- Do not hide behavioural, organisational, or operational adoption costs behind
+  a technical implementation estimate.
 
 ## Escalation guidance
 
-Ask for clarification only if missing information would materially change the recommendation. Otherwise:
-- state assumptions,
-- proceed,
-- keep recommendations modular and reversible.
+Ask for clarification only when missing information would materially change the
+recommendation. Otherwise:
 
-For a deeper scoring rubric and repository-anchoring prompts, see:
-[references/REFERENCE.md](references/REFERENCE.md)
+- state assumptions;
+- proceed;
+- keep recommendations modular and reversible;
+- specify what evidence would change the conclusion.
+
+For a deeper scoring rubric, mechanism-extraction template, and target-anchoring
+prompts, see [references/REFERENCE.md](references/REFERENCE.md).
