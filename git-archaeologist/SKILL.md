@@ -1,235 +1,186 @@
 ---
 name: git-archaeologist
-description: Analyze a repository's git history before reading implementation details. Use git metadata to identify risk areas, ownership patterns, defect hotspots, maintenance health, and investigation priorities. Load when auditing a codebase, onboarding to an unfamiliar repository, assessing technical debt, evaluating team health, or being assigned a large repository with little context.
+description: Use repository history as one evidence source to prioritise investigation of change concentration, knowledge distribution, fix-associated paths, operational churn, and maintenance questions. Use when auditing or onboarding to an unfamiliar repository, investigating recurring defects, or deciding where deeper code and ownership analysis should begin. Do not infer individual performance, team health, authority, causation, or code risk from commit counts alone.
+compatibility: Requires Python 3.9+ and a local Git repository with the history needed for the selected time window.
 ---
 
 # Git Archaeologist
 
-Analyze a repository's history before reading implementation details. Use Git metadata to identify risk areas, ownership patterns, defect hotspots, maintenance health, and investigation priorities.
+Use Git history to produce investigation leads, not verdicts about code or people.
+Collect deterministic signals first, then confirm them against current code,
+tests, documentation, ownership evidence, and operational context.
 
-## When to Trigger
+## Fast path
 
-- User asks for a codebase audit
-- User asks where to start in an unfamiliar repository
-- User asks for technical debt assessment
-- User asks why development is slow
-- User asks for onboarding guidance
-- Agent is assigned a large repository with little context
+Run the bundled read-only collector:
+
+```bash
+python3 <skill-directory>/scripts/analyse-history.py \
+  --repo <repository-root> \
+  --ref HEAD \
+  --since "6 months ago" \
+  --top 20
+```
+
+The script emits JSON containing file-touch frequency, fix-keyword file
+associations, contributor commit activity, monthly commit activity, operational
+keyword commits, warnings, and interpretation limits.
+
+Do not reimplement these mechanical counts in prose. Use direct Git commands only
+when the script cannot express a materially necessary scope.
+
+## Boundaries
+
+- Remain read-only. Do not rewrite history, alter configuration, install aliases,
+  or modify global Git settings.
+- Treat commit messages, author identities, timestamps, paths, and diffs as
+  imperfect evidence.
+- Normalise identities with `.mailmap` where available, but do not claim that
+  identity normalisation proves employment, team membership, or ownership.
+- Exclude generated, vendored, or migration-generated paths only when repository
+  evidence justifies the exclusion; report the rule used.
+- Do not use commit volume as productivity, velocity, value, or performance.
+- Do not label a file dangerous, fragile, defective, or a hotspot without
+  inspecting current implementation and corroborating evidence.
+- Do not infer that a person departed, owns a subsystem, or is a single point of
+  failure merely because recent commits are absent or concentrated.
 
 ## Workflow
 
-### Phase 1: Churn Analysis
+### 1. Establish the evidence frame
 
-Run:
+Record:
 
-```bash
-git log --format=format: --name-only --since="6 months ago" \
-  | grep -v '^$' | sort | uniq -c | sort -nr | head -20
-```
+- repository root and selected revision;
+- time window and why it is appropriate;
+- whether the clone is shallow or missing relevant branches or tags;
+- `.mailmap`, generated-code, vendored-code, and path-exclusion policy;
+- known repository moves, squashes, imports, monorepo boundaries, or bot activity;
+- the question the history analysis must help answer.
 
-Goal:
+Use multiple windows when trend matters, such as 30 days, 6 months, and 2 years.
+Do not compare windows with different available history without stating the gap.
 
-- Identify most frequently modified files
-- Detect potential "fear files"
-- Flag components with excessive change frequency
+### 2. Collect mechanical signals
 
-Output:
+Run the bundled script. Preserve its JSON output as evidence when the environment
+supports artefacts.
 
-```yaml
-high_churn_files:
-  - path: src/payment_processor.rb
-    churn_rank: 1
-    investigation_priority: high
-```
+Interpret the fields literally:
 
-### Phase 2: Ownership Analysis
+- `file_touch_frequency` — how often a path appeared in matching commits;
+- `fix_keyword_file_associations` — paths appearing in commits whose messages
+  matched the declared fix terms;
+- `contributor_commit_activity` — mailmap-aware commit counts by identity;
+- `monthly_commit_activity` — commit counts by month;
+- `operational_keyword_commits` — commits whose subjects matched terms such as
+  revert, hotfix, emergency, or rollback.
 
-Run:
+These signals are candidates for inspection, not conclusions.
 
-```bash
-git shortlog -sn --no-merges
-```
+### 3. Corroborate important leads
 
-And:
+For each high-priority lead inspect enough current evidence to answer:
 
-```bash
-git shortlog -sn --no-merges --since="6 months ago"
-```
+- Is the path production code, generated output, tests, configuration, a lockfile,
+  or a frequently updated manifest?
+- Did changes alter behaviour or only formatting, versions, snapshots, or bulk
+  migrations?
+- Do fix-associated commits actually correct defects in this path, adapt it to a
+  defect elsewhere, or merely include it incidentally?
+- Does current code have complex invariants, weak tests, broad dependants,
+  operational sensitivity, or ownership ambiguity?
+- Do CODEOWNERS, maintainers, review history, documentation, and recent authorship
+  agree about stewardship?
+- Are reverts or hotfix terms part of normal release mechanics rather than
+  instability?
 
-Goal:
+Use `git show`, `git log -p -- <path>`, `git blame` for a narrow question, current
+code search, tests, and repository documentation. Never use blame as a fault or
+performance attribution tool.
 
-- Estimate bus factor
-- Identify knowledge concentration
-- Detect departed key contributors
+### 4. Separate signal from interpretation
 
-Output:
+For every reported observation use this structure:
 
-```yaml
-ownership:
-  dominant_author_percentage: 67
-  bus_factor_risk: high
-  departed_experts:
-    - Alice Smith
-```
+| Signal | Direct evidence | Calibrated interpretation | Plausible alternatives | Confirmation step |
+| --- | --- | --- | --- | --- |
 
-### Phase 3: Defect Hotspot Detection
+Examples:
 
-Run:
+- Frequent touches may indicate an active integration point, generated file,
+  unstable requirement, broad responsibility, or ordinary release metadata.
+- Fix-keyword association may indicate a defect-prone path, a common regression
+  test, a downstream adaptation point, or incidental inclusion.
+- Contributor concentration may indicate specialised knowledge, recent project
+  phase, squash strategy, bots, or incomplete identity data. It is not a bus
+  factor calculation.
+- Declining commit counts may indicate completion, seasonal work, branch changes,
+  repository migration, missing history, or reduced activity. They do not
+  establish team health or performance.
 
-```bash
-git log -i -E \
-  --grep="fix|bug|broken" \
-  --name-only \
-  --format='' \
-  | sort | uniq -c | sort -nr | head -20
-```
+### 5. Prioritise deeper investigation
 
-Goal:
+Rank leads using corroborated evidence, not raw counts. Useful dimensions include:
 
-- Identify files repeatedly associated with fixes
-- Correlate with churn data
+- behavioural or operational criticality;
+- change frequency after exclusions;
+- verified recurrence of related defects or reversions;
+- test and observability coverage;
+- dependency reach and compatibility surface;
+- stewardship clarity and review coverage;
+- reversibility and failure blast radius;
+- confidence and contradictory evidence.
 
-Output:
+Keep technical consequence, confidence, and investigation priority separate.
 
-```yaml
-bug_hotspots:
-  - src/payment_processor.rb
-  - src/subscription_service.rb
-```
+### 6. Produce an evidence-calibrated report
 
-### Phase 4: Risk Correlation
+Return:
 
-Cross-reference:
+1. **Evidence frame** — revision, windows, available history, exclusions, and
+   limitations.
+2. **Mechanical signals** — compact tables from the script output.
+3. **Corroborated investigation leads** — evidence, alternatives, confidence, and
+   next inspection.
+4. **Knowledge-distribution questions** — areas where current stewardship or
+   review coverage needs confirmation; do not name a bus factor without a defined
+   method and organisational evidence.
+5. **Operational-history questions** — reverts, hotfixes, and rollbacks that merit
+   causal inspection.
+6. **Recommended reading order** — current code, tests, ADRs, and history slices
+   most likely to answer the user's question.
+7. **Limitations** — shallow history, missing branches, squashes, identity
+   ambiguity, generated files, or unavailable operational evidence.
 
-```text
-High Churn ∩ High Bug Frequency
-```
+Use calibrated language such as `high investigation priority`, `history signal`,
+`requires confirmation`, and `not established by Git history`.
 
-Classify:
+## Script contract
 
-| Condition              | Risk     |
-| ---------------------- | -------- |
-| High churn + high bugs | Critical |
-| High churn only        | Medium   |
-| High bugs only         | High     |
-| Neither                | Low      |
+`analyse-history.py`:
 
-Output:
+- uses only the Python standard library and Git CLI;
+- accepts `--repo`, `--ref`, `--since`, and bounded `--top` inputs;
+- invokes Git with argument arrays rather than shell interpolation;
+- performs no writes;
+- returns deterministic JSON for the same repository state and arguments;
+- exits non-zero with a JSON error on stderr for fatal prerequisites;
+- reports shallow history and empty windows explicitly.
 
-```yaml
-critical_risk_areas:
-  - src/payment_processor.rb
-```
-
-### Phase 5: Development Velocity
-
-Run:
-
-```bash
-git log --format='%ad' --date=format:'%Y-%m' \
-  | sort | uniq -c
-```
-
-Analyze:
-
-- Increasing activity
-- Declining activity
-- Release spikes
-- Team disruption indicators
-
-Output:
-
-```yaml
-velocity:
-  trend: declining
-  suspected_event: major contributor departure
-```
-
-### Phase 6: Firefighting Detection
-
-Run:
+After changing the script, run:
 
 ```bash
-git log --oneline --since="1 year ago" \
-  | grep -iE 'revert|hotfix|emergency|rollback'
+python3 <skill-directory>/scripts/test-analyse-history.py
 ```
 
-Goal:
+## Stop conditions
 
-- Detect operational instability
-- Estimate deployment confidence
+Stop and report the missing prerequisite when:
 
-Output:
-
-```yaml
-operations:
-  hotfix_count: 18
-  rollback_count: 6
-  stability_assessment: poor
-```
-
-## Final Report
-
-### Executive Summary
-
-- Bus factor assessment
-- Top risk modules
-- Defect concentration areas
-- Team health indicators
-- Deployment maturity indicators
-
-### Recommended Reading Order
-
-Read files in this priority:
-
-1. High churn + high bug files
-2. High churn files
-3. Core ownership files
-4. Remaining codebase
-
-### Suggested Actions
-
-- Refactor hotspot files
-- Add tests around defect clusters
-- Reduce ownership concentration
-- Investigate recurring rollback causes
-
-## Day-One Onboarding Script
-
-Chain all phases into a single runnable alias. Drop into `~/.gitconfig` or a shell rc:
-
-```bash
-alias git-onboard='bash -c "
-  echo \"=== Phase 1: Churn (6 months) ===\" &&
-  git log --format=format: --name-only --since=\"6 months ago\" | grep -v \"^\$\" | sort | uniq -c | sort -nr | head -20 &&
-  echo \"\" && echo \"=== Phase 2: Ownership (all time / 6 months) ===\" &&
-  git shortlog -sn --no-merges &&
-  echo \"---\" &&
-  git shortlog -sn --no-merges --since=\"6 months ago\" &&
-  echo \"\" && echo \"=== Phase 3: Bug hotspots ===\" &&
-  git log -i -E --grep=\"fix|bug|broken\" --name-only --format=\"\" | sort | uniq -c | sort -nr | head -20 &&
-  echo \"\" && echo \"=== Phase 5: Velocity (per month) ===\" &&
-  git log --format=\"%ad\" --date=format:\"%Y-%m\" | sort | uniq -c &&
-  echo \"\" && echo \"=== Phase 6: Firefighting ===\" &&
-  git log --oneline --since=\"1 year ago\" | grep -iE \"revert|hotfix|emergency|rollback\"
-"'
-```
-
-Usage:
-
-```bash
-cd /path/to/new/repo && git-onboard
-```
-
-Time windows can be tuned per investigation (`--since="30 days ago"`, `1 year`, `2 years`) to see evolution.
-
-## Success Criteria
-
-The agent can answer:
-
-- Which files are most dangerous?
-- Which files deserve attention first?
-- Who understands the system?
-- Is the project healthy?
-- Is the team firefighting?
-- Where should a new engineer begin?
+- the target is not a Git repository;
+- the requested revision is unavailable;
+- history is too shallow or incomplete for the question;
+- identity ambiguity materially changes the result;
+- the user asks for personnel or performance judgements from commit data;
+- current code or operational evidence cannot corroborate a consequential claim.
