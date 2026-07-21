@@ -1,247 +1,202 @@
 ---
 name: coach-me
-description: >
-  Analyses the current user's session history against Anthropic's Claude Code
-  Expertise research framework to identify their strongest and weakest prompting
-  behaviours, the 20% changes that would produce 80% of improvement, and writes
-  a personalised "User Manual for Working With AI". Use when a user wants to
-  understand and improve how they collaborate with advanced models.
+description: Analyse the current user's real AI-session prompts to identify evidence-backed collaboration strengths, recurring friction, and high-leverage improvements, then produce a personalised working manual. Use when a user wants to understand and improve how they frame, steer, verify, and recover work with advanced models. Do not analyse another person's data or substitute general writing samples for AI-session evidence.
+compatibility: Requires access to the current user's AI session history. Internet access is needed to refresh any external research benchmark used in the analysis.
 ---
 
 # Coach Me
 
-> **Personal only.** This skill analyses the *current user's* session history.
-> It never analyses another person's data. Output is diagnostic — no code is
-> written, no files are committed.
+Analyse the current user's AI collaboration behaviour and produce a calibrated
+coaching report grounded in their actual prompts. Do not write code or modify
+repositories.
 
-Evaluate the user's real prompting behaviour against the Anthropic Claude Code
-Expertise research framework and produce a coaching report covering strengths,
-weaknesses, high-leverage improvements, and a personalised "User Manual".
+## Boundaries
 
-**Announce at start:** "I'm using the coach-me skill to analyse your
-session history."
+- Analyse only the current user's data.
+- Do not inspect another person's sessions, shared team transcripts, or private
+  content merely because it is technically accessible.
+- Quote only the minimum prompt excerpt needed to support a finding.
+- Redact secrets, personal data, customer data, and unrelated content.
+- Separate observed prompting behaviour from inference and external benchmarks.
+- Do not infer stable ability, personality, or performance from a small or biased
+  sample.
 
----
+## 1. Establish the benchmark
 
-## When to use
+When using an external research framework, fetch its current canonical source at
+execution time. For the Anthropic Claude Code expertise study, use:
 
-- A user wants to understand their AI collaboration patterns
-- A user wants concrete, evidence-backed suggestions for more effective prompting
-- A team lead wants a baseline read on their own usage before coaching others
-
----
-
-## Prerequisites
-
-- Internet access to fetch the Anthropic research article
-- At least ~30 user prompts worth of session history, sourced by any method
-  available in the current environment (see Step 1)
-
----
-
-## Research Benchmark
-
-Fetch the Anthropic research before analysing any sessions:
-
-```
-URL: https://www.anthropic.com/research/claude-code-expertise
+```text
+https://www.anthropic.com/research/claude-code-expertise
 ```
 
-Key framework dimensions to extract and hold in context:
+Extract and record:
 
-| Dimension | What to look for |
-|-----------|-----------------|
-| **Expertise scale** | Novice → Intermediate → Expert (5-point). Expert markers: precise framing, domain-specific vocabulary, user corrects AI (not reverse), each prompt sets off 12+ agent actions vs ~5 for novice |
-| **Division of labour** | Typical: user makes ~70% planning decisions, Claude makes ~80% execution decisions |
-| **Verified success** | Requires a hard signal (passing tests, committed work, explicit user confirmation). Experts reach verified success 2× more often than novices |
-| **Recovery from trouble** | Experts recover at 3× the rate of novices when a session hits trouble |
-| **Actions per prompt** | Expert prompts set off ~12 actions + ~3,200 words of output vs ~5 actions + ~600 words for novice |
+- publication or revision date when available;
+- studied product, population, and task scope;
+- definitions of expertise and success;
+- measured dimensions and quantitative claims;
+- study limitations and transfer caveats.
 
----
+Do not hard-code or reuse remembered figures unless the source version has been
+verified during the run. Do not apply Claude Code-specific results to general
+chat, non-coding agents, or a different harness without an explicit caveat.
 
-## Step 1 — Collect session history
+The benchmark is a comparison lens, not a scoring authority. The user's own
+repeated evidence takes precedence over a generic population average.
 
-The goal is **30+ real user prompts** from actual AI sessions. Use whichever
-source is available in the current environment — the analysis method in later
-steps is identical regardless of how the prompts were collected.
+## 2. Collect representative AI-session evidence
 
-### Source options (try in order)
+Use sources in this order:
 
-**A. Current conversation context**
-The simplest source. Scroll back through the current conversation and note every
-user message. Works in any tool with no extra setup.
+1. current conversation turns;
+2. the user's own tool-native AI session history;
+3. user-provided representative prompts or exported transcripts.
 
-**B. Tool-native session store**
-If the host environment exposes a queryable session history (e.g. a local
-database, an API, or a CLI command), use it to retrieve recent user messages
-across sessions. Retrieve at least 80 rows sorted newest-first, filtering to
-messages longer than 30 characters. Also retrieve any available session
-summaries or checkpoint overviews for wider context.
+Git commits, pull-request bodies, issues, emails, and other general writing may
+provide adjacent communication context only. They must not substitute for AI
+prompts, contribute to prompting-behaviour counts, or support claims about model
+steering and recovery.
 
-**C. Git artifacts**
-If no session store is accessible, mine git history for user-authored text:
-commit messages, PR descriptions, and issue/ticket bodies written by the user
-are reasonable proxies for how they frame work for an AI.
+Sample guidance:
 
-**D. User-provided examples**
-If none of the above are available, ask the user to paste 10–20 representative
-prompts they have sent to an AI coding assistant. Explain you need them to run
-the analysis.
+- 30 or more distinct user prompts across several sessions: full report;
+- 10–29 prompts: preliminary report with explicit sample limits;
+- fewer than 10 prompts: produce only a small watchlist or request more examples.
 
-### Minimum viable sample
+Prefer diversity across tasks, outcomes, and session stages. Avoid overweighting
+one long project, repeated retries, or many prompts derived from the same failure.
 
-- **30+ distinct user messages** for a full report
-- **10–29** for a preliminary report — flag the sample size and mark findings
-  as indicative
-- **Fewer than 10** — ask the user to provide additional examples before
-  proceeding
+## 3. Build an evidence table
 
----
+For each prompt record:
 
-## Step 2 — Classify prompts
+- session and task context;
+- stage: initial framing, clarification, steering, recovery, verification, or
+  completion;
+- observed behaviour;
+- outcome evidence when available;
+- uncertainty and plausible alternative interpretation.
 
-For each retrieved user message, classify it against these dimensions. Work
-through at least 30 distinct prompts before drawing conclusions.
+Count one behavioural occurrence per independent prompt event. Several turns
+responding to the same unresolved problem may form one correlated episode rather
+than independent evidence.
 
-### Expert markers (positive signals)
+## 4. Classify collaboration behaviours
 
-- **Constraint injection**: mentions what *not* to use/do before stating the goal
-- **Pinned artefacts**: includes specific versions, file paths, branch names, URLs
-- **Inline triage**: narrows the problem space in the prompt itself (rules out causes, routes to tools)
-- **Scope policing**: user corrects the agent mid-session rather than being corrected
-- **Process encoding**: specifies *how* work should be done (slice-by-slice, TDD, review gates)
-- **Tool/skill routing**: names skills or tools explicitly to shrink agent inference overhead
-- **Hard verification criterion**: ends with a testable assertion, not "please verify"
+Use evidence-backed categories such as:
 
-### Novice/weak markers (negative signals)
+### Helpful behaviours
 
-- **Multi-concern bundling**: 3+ tasks, questions, and instructions in one turn
-- **Open-ended bootstrapping**: defers problem framing to the agent ("ask if anything is unclear")
-- **Reactive constraint injection**: domain knowledge appears only *after* misalignment
-- **Missing acceptance criteria**: goal stated but no clear definition of done
-- **Technical identifier typos**: package names, command flags, version strings misspelled
-- **Scope drift without explicit pivot**: requirements evolve mid-session without a reframe turn
-- **Redundant context in follow-ups**: repeats information the agent already has
+- concrete outcome and scope;
+- relevant constraints and explicit exclusions;
+- pinned artefacts, versions, paths, or sources;
+- decision rights and responsibility boundaries;
+- explicit tool or skill routing when it reduces ambiguity;
+- observable acceptance and verification criteria;
+- concise course correction when evidence contradicts the agent;
+- deliberate recovery after failure;
+- separation of exploration, decision, implementation, and review;
+- preservation of canonical sources and provenance.
 
----
+### Friction behaviours
 
-## Step 3 — Score and rank
+- several unrelated outcomes bundled without prioritisation;
+- missing definition of done;
+- important constraints arriving only after avoidable drift;
+- ambiguous pivots that leave old requirements active;
+- verification requests without a hard signal;
+- repeated context that should be referenced rather than recopied;
+- reliance on the model to infer authority, risk tolerance, or irreversible action;
+- continuing after a failed prerequisite without reframing;
+- technical identifier errors that materially change tool or package selection.
 
-Produce a frequency count across the classified turns:
+Do not treat natural-language typos, brevity, politeness, or stylistic preference
+as weaknesses unless they repeatedly cause observable failure.
 
-| Behaviour | Count | Representative example |
-|-----------|-------|----------------------|
-| Constraint injection | N | "..." |
-| Pinned artefacts | N | "..." |
-| ... | | |
+## 5. Assess outcomes and recovery
 
-Rank behaviours by frequency. The top 3 positive behaviours are the user's
-**strengths**. The top 3 negative behaviours are their **weaknesses**.
+Where available, connect behaviours to hard evidence:
 
----
+- tests, builds, committed changes, accepted pull requests, or other verified
+  completion;
+- user correction followed by successful recovery;
+- repeated tool, scope, or reasoning failures;
+- abandoned or restarted sessions;
+- unnecessary turns, duplicated work, or lost evidence.
 
-## Step 4 — Identify the 20/80 changes
+Do not equate more agent actions, longer output, or more tool calls with expertise.
+Measure whether the interaction produced correct, verified, proportionate work.
 
-Apply the 80/20 rule: which 2–3 changes, if applied consistently, would
-eliminate the most friction or unlock the most agent capacity?
+## 6. Identify strengths and high-leverage changes
 
-Prioritise changes that:
-1. Affect the *first turn* of a session (highest leverage — sets the action chain)
-2. Eliminate a pattern the user repeats across multiple sessions
-3. Would push the user's weakest prompts up to match their strongest prompts
-   (internal gap is often larger than the novice–expert gap in the research)
+Require repeated evidence before calling a behaviour a strength or weakness.
+Keep frequency, consequence, confidence, and trend separate.
 
-For each change:
-- Quote the weak prompt as written
-- Explain why it limits success
-- Write a better version of the same prompt
+Select:
 
----
+- up to three strongest behaviours;
+- up to three recurring friction patterns;
+- two or three changes most likely to improve first-turn framing, steering,
+  recovery, or verification.
 
-## Step 5 — Write the output report
+For each improvement include:
 
-Produce the full report in this exact structure:
+- representative evidence;
+- the observed cost or failure mode;
+- a better version of the same prompt or interaction move;
+- when the change should and should not be used;
+- a future signal that would show improvement.
 
----
+Do not prescribe elaborate prompt templates when a small concrete addition would
+solve the problem.
 
-### The Anthropic Research Benchmark
+## 7. Produce the report
 
-Brief summary of the expertise framework (2–3 sentences). State which tier the
-user most closely resembles based on the evidence.
+Use this structure:
 
----
+### Evidence and benchmark
 
-### ✅ Strongest Prompting Behaviours
+State sample size, session diversity, sources, benchmark version, scope caveats,
+and missing outcome evidence.
 
-For each of the top 3 strengths:
-- **Behaviour name** (bold)
-- Quoted representative prompt (blockquote)
-- Pattern explanation (1 paragraph)
-- Why it helps (1 sentence)
+### Strongest collaboration behaviours
 
----
+For each strength provide a short prompt excerpt, pattern, why it helps, and
+confidence.
 
-### ❌ Weakest Prompting Behaviours
+### Recurring friction
 
-For each of the top 3 weaknesses:
-- **Behaviour name** (bold)
-- Quoted representative prompt (blockquote)
-- Pattern explanation (1 paragraph)
-- Why it hurts (1 sentence)
-- **Better version** of the prompt (code block or blockquote)
+For each friction provide evidence, impact, alternative explanation, and a better
+interaction move.
 
----
+### Highest-leverage changes
 
-### The 20% Changes → 80% of the Improvement
+Rank two or three changes by expected benefit and effort. Include before/after
+examples grounded in the user's prompts.
 
-Numbered list of 2–3 high-leverage changes. Each item:
-- Change name (bold)
-- One-sentence rationale referencing the research
-- Before/after prompt pair
+### Personal working manual
 
----
+Write a compact manual covering:
 
-### User Manual: Working with [username]
+1. how the user frames and reasons about work;
+2. where collaboration consistently succeeds;
+3. where context, scope, or verification is commonly lost;
+4. how an assistant should respond, challenge assumptions, and preserve evidence;
+5. four or five durable habits ranked by leverage.
 
-One page (~500 words). Sections:
-1. **Who you are as a collaborator** — expertise tier, domain strengths, mental model of the agent system
-2. **Where you get the most value** — the work modes and prompt patterns where your sessions consistently succeed
-3. **Where you waste effort** — the patterns that cost turns or cause abandoned sessions
-4. **How to become a more effective collaborator** — 4–5 concrete, durable habits ranked by leverage
+### Measurement plan
 
----
+Name a small set of future indicators, such as verified completion rate,
+clarification turns, recovery success, repeated constraint corrections, or
+unverified completion claims. Do not create a pseudo-precise overall score.
 
-## Output contract
+## Output and privacy contract
 
-The report is written directly in the conversation. Do not commit it to git, do
-not create a file in the repo. If the user wants to save it, offer to write it
-to their session folder (`~/.copilot/session-state/<session-id>/files/prompting-report.md`).
+Return the report in the conversation unless the user explicitly requests a
+file. Do not commit it to a repository or persist session-derived personal data
+without explicit consent.
 
----
-
-## Guardrails
-
-- **Never analyse another user's data.** If the session store returns turns from
-  multiple users, filter to the current user's sessions only.
-- **No speculation.** Every finding must be backed by a quoted prompt from the
-  session data. If fewer than 10 distinct user prompts are available, state the
-  sample size limitation at the top of the report and flag findings as
-  preliminary.
-- **Typos are signal, not noise.** Technical identifier typos (package names,
-  command flags) are a genuine prompting risk and should be noted. Natural
-  language typos are not a finding.
-- **Respect the research scope.** The Anthropic study covers Claude Code sessions
-  specifically. If the session data is from a different tool (e.g., pure chat),
-  note the caveat.
-
----
-
-## Quick Reference
-
-| Step | Action |
-|------|--------|
-| 1 | Fetch Anthropic research from URL above |
-| 2 | Collect 30+ user prompts via whichever source is available (conversation context, tool-native store, git artifacts, or user-pasted examples) |
-| 3 | Classify 30+ prompts against expert/novice markers |
-| 4 | Score, rank, and find the 20/80 changes |
-| 5 | Write report in the defined structure |
+Every material finding must cite or quote representative user evidence. Mark thin
+or correlated samples as preliminary. State when outcome evidence is unavailable
+rather than inferring success from fluent responses.
