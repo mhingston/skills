@@ -24,7 +24,7 @@ def run(cmd, cwd, env=None):
 
 
 class AnalyseHistoryTests(unittest.TestCase):
-    def test_collects_signals_without_claiming_risk(self):
+    def test_collects_signals_without_claiming_risk_or_exposing_email(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             run(["git", "init"], repo)
@@ -67,7 +67,11 @@ class AnalyseHistoryTests(unittest.TestCase):
                 check=True,
             )
             data = json.loads(proc.stdout)
+            rendered = json.dumps(data)
+
+            self.assertEqual(data["schema_version"], "1.1")
             self.assertEqual(data["commit_count"], 2)
+            self.assertEqual(data["identity_detail"], "mailmap-aware name only")
             self.assertEqual(
                 data["signals"]["file_touch_frequency"][0],
                 {"path": "service.py", "touch_count": 2},
@@ -76,8 +80,14 @@ class AnalyseHistoryTests(unittest.TestCase):
                 data["signals"]["fix_keyword_file_associations"][0]["path"],
                 "service.py",
             )
+            self.assertEqual(
+                data["signals"]["contributor_commit_activity"][0]["identity"],
+                "Test User",
+            )
+            self.assertNotIn("test@example.com", rendered)
             self.assertIn("not code risk", " ".join(data["interpretation_limits"]))
-            self.assertNotIn("bus_factor", json.dumps(data))
+            self.assertIn("personality", " ".join(data["interpretation_limits"]))
+            self.assertNotIn("bus_factor", rendered)
 
     def test_fails_usefully_outside_repository(self):
         with tempfile.TemporaryDirectory() as tmp:
