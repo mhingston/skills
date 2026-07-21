@@ -4,7 +4,10 @@ description: >-
   Internal refine-agent module for assessing and drafting one bounded,
   agent-ready work item. Use only when the refine agent supplies a source
   snapshot, orchestration state, tracker capabilities, and settled constraints.
-user-invocable: false
+metadata:
+  mhingston.internal: "true"
+  mhingston.owner-agent: "refine"
+  mhingston.user-invocable: "false"
 ---
 
 # Refine Ticket
