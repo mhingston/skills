@@ -1,6 +1,6 @@
 ---
 name: git-archaeologist
-description: Use repository history as one evidence source to prioritise investigation of change concentration, knowledge distribution, fix-associated paths, operational churn, and maintenance questions. Use when auditing or onboarding to an unfamiliar repository, investigating recurring defects, or deciding where deeper code and ownership analysis should begin. Do not infer individual performance, team health, authority, causation, or code risk from commit counts alone.
+description: Use repository history as one evidence source to prioritise investigation of change concentration, knowledge distribution, fix-associated paths, operational churn, and maintenance questions. Use when auditing or onboarding to an unfamiliar repository, investigating recurring defects, or deciding where deeper code and ownership analysis should begin. Do not infer individual performance, team health, authority, causation, code risk, personality, or personal circumstances from commit history alone.
 compatibility: Requires Python 3.9+ and a local Git repository with the history needed for the selected time window.
 ---
 
@@ -9,6 +9,9 @@ compatibility: Requires Python 3.9+ and a local Git repository with the history 
 Use Git history to produce investigation leads, not verdicts about code or people.
 Collect deterministic signals first, then confirm them against current code,
 tests, documentation, ownership evidence, and operational context.
+
+Use `contributor-analysis` instead when the primary question is reviewer discovery,
+current stewardship, onboarding contacts, subsystem knowledge coverage, or continuity.
 
 ## Fast path
 
@@ -44,6 +47,13 @@ when the script cannot express a materially necessary scope.
   inspecting current implementation and corroborating evidence.
 - Do not infer that a person departed, owns a subsystem, or is a single point of
   failure merely because recent commits are absent or concentrated.
+- Do not infer personality, psychology, communication style, motivation, health,
+  personal circumstances, relationships, working habits, or likely behaviour from
+  commit messages, timestamps, code style, paths, or authorship patterns.
+- Do not treat commit timestamps as working hours, availability, diligence,
+  wellbeing, location, or work-life balance.
+- Use `contributor-analysis` for people-centred engineering questions; do not stretch
+  this repository-triage workflow into a contributor profile or leaderboard.
 
 ## Workflow
 
@@ -55,7 +65,9 @@ Record:
 - time window and why it is appropriate;
 - whether the clone is shallow or missing relevant branches or tags;
 - `.mailmap`, generated-code, vendored-code, and path-exclusion policy;
-- known repository moves, squashes, imports, monorepo boundaries, or bot activity;
+- known repository moves, squashes, imports, monorepo boundaries, bot activity,
+  service accounts, co-authored work, pairing, and AI-generated or templated commit
+  messages;
 - the question the history analysis must help answer.
 
 Use multiple windows when trend matters, such as 30 days, 6 months, and 2 years.
@@ -71,7 +83,7 @@ Interpret the fields literally:
 - `file_touch_frequency` — how often a path appeared in matching commits;
 - `fix_keyword_file_associations` — paths appearing in commits whose messages
   matched the declared fix terms;
-- `contributor_commit_activity` — mailmap-aware commit counts by identity;
+- `contributor_commit_activity` — mailmap-aware, name-only commit counts by identity;
 - `monthly_commit_activity` — commit counts by month;
 - `operational_keyword_commits` — commits whose subjects matched terms such as
   revert, hotfix, emergency, or rollback.
@@ -118,6 +130,8 @@ Examples:
 - Declining commit counts may indicate completion, seasonal work, branch changes,
   repository migration, missing history, or reduced activity. They do not
   establish team health or performance.
+- Commit-message style may be templated, generated, rewritten during squash merge,
+  or supplied by someone other than the recorded author.
 
 ### 5. Prioritise deeper investigation
 
@@ -165,6 +179,7 @@ Use calibrated language such as `high investigation priority`, `history signal`,
 - invokes Git with argument arrays rather than shell interpolation;
 - performs no writes;
 - returns deterministic JSON for the same repository state and arguments;
+- emits mailmap-aware contributor names but not email addresses;
 - exits non-zero with a JSON error on stderr for fatal prerequisites;
 - reports shallow history and empty windows explicitly.
 
@@ -182,5 +197,6 @@ Stop and report the missing prerequisite when:
 - the requested revision is unavailable;
 - history is too shallow or incomplete for the question;
 - identity ambiguity materially changes the result;
-- the user asks for personnel or performance judgements from commit data;
+- the user asks for personnel, performance, personality, psychological,
+  personal-life, health, behavioural, or work-habit judgements from commit data;
 - current code or operational evidence cannot corroborate a consequential claim.

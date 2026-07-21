@@ -50,5 +50,7 @@ jobs:
           fi
           echo "Validated $count skills."
 
-      - name: Test Git history collector
-        run: python3 git-archaeologist/scripts/test-analyse-history.py
+      - name: Test Git evidence collectors
+        run: |
+          python3 contributor-analysis/scripts/test-analyse-contributors.py
+          python3 git-archaeologist/scripts/test-analyse-history.py

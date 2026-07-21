@@ -2,7 +2,8 @@
 """Collect read-only Git history signals for repository investigation.
 
 The script emits JSON and deliberately avoids interpreting commit activity as
-productivity, team health, ownership authority, defect causation, or code risk.
+productivity, team health, ownership authority, defect causation, code risk, or
+human traits. Contributor activity is mailmap-aware and name-only.
 """
 from __future__ import annotations
 
@@ -115,7 +116,7 @@ def main() -> int:
             ],
         )
         shortlog = run_git(
-            root, ["shortlog", "-sne", "--all", f"--since={args.since}"]
+            root, ["shortlog", "-sn", f"--since={args.since}", args.ref]
         )
         month_output = run_git(
             root, ["log", "--format=%ad", "--date=format:%Y-%m", f"--since={args.since}", args.ref]
@@ -141,11 +142,12 @@ def main() -> int:
             warnings.append("No commits matched the selected revision and time window.")
 
         result = {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "repository_root": str(root),
             "ref": args.ref,
             "since": args.since,
             "commit_count": commit_count,
+            "identity_detail": "mailmap-aware name only",
             "signals": {
                 "file_touch_frequency": count_paths(changed, args.top),
                 "fix_keyword_file_associations": count_paths(fix_files, args.top),
@@ -162,6 +164,9 @@ def main() -> int:
                 "Commit concentration is not bus factor, authority, productivity, or team health.",
                 "Commit volume is not delivery velocity or value.",
                 "Reduced activity does not establish departure, disengagement, or performance.",
+                "Git history must not be used to infer personality, psychology, personal circumstances, or likely behaviour.",
+                "Commit timestamps do not establish working hours, availability, diligence, wellbeing, or work-life balance.",
+                "Commit-message style may be templated, generated, squashed, automated, or written by someone other than the recorded author.",
             ],
             "warnings": warnings,
         }

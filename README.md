@@ -86,6 +86,7 @@ the metadata to its native visibility mechanism.
 | [`adopt`](adopt/SKILL.md) | Transfer evidence-backed mechanisms from an external source into a concrete target context. |
 | [`audit-me`](audit-me/SKILL.md) | Audit recurring work and connected work surfaces for dropped commitments, fragmented context, and automation opportunities. |
 | [`coach-me`](coach-me/SKILL.md) | Analyse the current user's real AI-session evidence and produce focused coaching and a personalised working manual. |
+| [`contributor-analysis`](contributor-analysis/SKILL.md) | Find evidence-backed reviewer candidates, stewardship coverage, onboarding contacts, and continuity questions without profiling people or ranking performance. |
 | [`create-pr`](create-pr/SKILL.md) | Inspect a committed branch, carry current technical-risk evidence into a behaviour-first PR description, and create one reviewable pull request. |
 | [`git-archaeologist`](git-archaeologist/SKILL.md) | Use calibrated repository-history signals to prioritise deeper code, ownership, and operational investigation. |
 | [`lsp-config`](lsp-config/SKILL.md) | Detect repository languages and safely reconcile GitHub Copilot CLI LSP configuration and VS Code recommendations. |
@@ -138,6 +139,7 @@ for skill_md in */SKILL.md; do
   skills-ref validate "$(dirname "$skill_md")"
 done
 
+python3 contributor-analysis/scripts/test-analyse-contributors.py
 python3 git-archaeologist/scripts/test-analyse-history.py
 node teach-me/scripts/learning-state.test.mjs
 node teach-me/scripts/learning-engine.test.mjs
