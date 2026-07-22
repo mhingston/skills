@@ -6,7 +6,10 @@
 - [Finding schema](#finding-schema)
 - [Severity, confidence, and disposition](#severity-confidence-and-disposition)
 - [Falsification](#falsification)
+- [Reviewer provenance](#reviewer-provenance)
+- [Design redirects](#design-redirects)
 - [Risk map](#risk-map)
+- [Calibration receipt](#calibration-receipt)
 - [Evidence rules](#evidence-rules)
 - [Rendered report](#rendered-report)
 
@@ -29,6 +32,8 @@ Require each baseline or change-specific review dimension to return this logical
 ```
 
 `dimension_type` is `baseline` or `change-specific`. A change-specific result must explain why it was selected. An empty finding list is valid.
+
+The baseline design dimension is `local design and maintainability`. It evaluates implementation structure and consistency with an established architecture. It must not invent or settle a missing system-level architecture decision.
 
 ## Finding schema
 
@@ -117,7 +122,7 @@ A disposition routes attention; it is not a human verdict.
 - `informational`
 - `not-applicable`
 
-When no policy exists, choose the most conservative evidence-backed disposition without inventing authority. A blocker normally maps to `remediate-before-merge`; a material trust, privacy, data, or regulatory unknown may map to `specialist-review-required`; an unresolved upstream architectural decision may map to `redirect-to-design`.
+When no policy exists, choose the most conservative evidence-backed disposition without inventing authority. A blocker normally maps to `remediate-before-merge`; a material trust, privacy, data, or regulatory unknown may map to `specialist-review-required`; an unresolved upstream architectural decision may map to `redirect-to-design` and must also appear in `design_redirects`.
 
 ## Falsification
 
@@ -136,18 +141,74 @@ Before a candidate becomes a validated finding, record one or more attempts to d
 
 Drop a falsified candidate. Put an inconclusive material concern in `Unverified` with the exact next check. Do not describe absence of evidence as successful falsification.
 
+## Reviewer provenance
+
+Record enough provenance to calibrate independence claims without inventing hidden harness details:
+
+```json
+{
+  "execution_mode": "parallel-independent-contexts",
+  "context_separation": "fresh context per dimension",
+  "models": ["identifier or unknown"],
+  "model_families": ["identifier or unknown"],
+  "shared_prompt_family": true,
+  "shared_originating_context": false,
+  "shared_evidence_packet": true,
+  "shared_tools_or_limits": ["read-only repository access"],
+  "authoring_model_reused": "unknown",
+  "falsifier": {
+    "fresh_context": true,
+    "different_model_or_specialist": false,
+    "deterministic_analyser": false
+  },
+  "correlation_limitations": ["same model family", "same evidence packet"]
+}
+```
+
+Allowed execution modes include `single-pass-fast-path`, `single-context-fallback`, `parallel-separated-contexts`, and another explicit harness-specific value. Use `unknown` for unavailable fields. Parallel execution is not proof of independent reasoning.
+
+## Design redirects
+
+A design redirect records a material upstream decision that the pull request would otherwise make implicitly. It is not a substitute for a local design finding.
+
+```json
+{
+  "id": "DESIGN-1",
+  "decision_needed": "Choose whether order retries are at-least-once or exactly-once at the public boundary",
+  "evidence": ["src/orders/retry.ts:20-88", "docs/architecture.md: no decision found"],
+  "affected_boundary": "Public order submission contract",
+  "credible_alternatives": ["at-least-once with idempotency key", "exactly-once ledger command"],
+  "why_review_cannot_decide": "Both alternatives change public guarantees and operational ownership",
+  "implicit_decision_consequence": "The implementation would publish an undocumented delivery guarantee",
+  "required_authority": "Architecture owner and product owner",
+  "required_artifact": "Approved ADR or amended interface contract",
+  "resume_evidence": "Current approved artifact linked to the exact review frame",
+  "status": "unresolved"
+}
+```
+
+Allowed status values are `unresolved` and `resolved-by-current-evidence`. The technical reviewer normally emits `unresolved`. The accountable orchestrator validates later resolution and then obtains a fresh technical review.
+
+Create a redirect only when no current authoritative artifact settles a material system-level decision and local review cannot choose among credible alternatives. A violation of an existing architecture decision remains a normal finding.
+
 ## Risk map
 
 Produce a risk map bound to the exact reviewed revisions:
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "scope": "pull request 123",
   "base_sha": "40-character SHA",
   "head_sha": "40-character SHA",
   "generated_at": "RFC-3339 timestamp",
-  "execution_mode": "independent dimension workers",
+  "execution_mode": "parallel-separated-contexts",
+  "reviewer_provenance": {
+    "models": ["unknown"],
+    "shared_prompt_family": true,
+    "shared_evidence_packet": true,
+    "correlation_limitations": ["same model family"]
+  },
   "spec_source": "issue URL or none",
   "dimensions": [
     {
@@ -178,7 +239,9 @@ Produce a risk map bound to the exact reviewed revisions:
     }
   ],
   "compound_risks": [],
+  "design_redirects": [],
   "unverified": [],
+  "calibration_receipt": null,
   "technical_posture": "Blocking technical risk identified."
 }
 ```
@@ -186,6 +249,26 @@ Produce a risk map bound to the exact reviewed revisions:
 Risk-map IDs are stable only within the reviewed revision. Any head change makes the map stale.
 
 A compound risk must state the causal interaction, contributing finding or risk IDs, combined consequence, and evidence. Do not create one merely because findings share a file or label.
+
+An unresolved design redirect is a workflow stop for accountable PR review. It must not be hidden inside `unverified`, converted into an ordinary human risk disposition, or cleared by the technical reviewer without current authoritative evidence.
+
+## Calibration receipt
+
+When the harness measured the information consistently, include:
+
+```json
+{
+  "candidate_findings": 8,
+  "validated_findings": 3,
+  "falsified_findings": 4,
+  "inconclusive_findings": 1,
+  "deduplicated_findings": 1,
+  "measured_latency_seconds": null,
+  "measured_cost": null
+}
+```
+
+Use `null` or omit the receipt when unavailable. Never estimate candidate counts, latency, tool usage, tokens, or cost.
 
 ## Evidence rules
 
@@ -202,6 +285,8 @@ A compound risk must state the causal interaction, contributing finding or risk 
 - Cap strengths at three. Every strength needs a path, line, and specific reason it is worth retaining.
 - An empty result is valid. State coverage and limitations instead of inventing a finding.
 - Do not let a policy threshold replace technical evidence, and do not let technical severity manufacture a human verdict.
+- Do not call correlated reviewers independent without recording the shared assumptions.
+- Do not use a design redirect to evade a supported implementation finding.
 
 ## Rendered report
 
@@ -214,15 +299,23 @@ Use this order:
 
 **Scope:** <working tree, revisions, PR, range, path, or module>
 **Base / head:** <exact revisions, or not applicable>
-**Execution:** <independent dimension workers | single-context fallback | single-pass fast path>
+**Execution:** <execution mode>
 **Spec source:** <source or none>
 **Dimensions:** <baseline and change-specific dimensions covered>
 **Risk map:** <artefact path/link or embedded summary>
+
+## Design redirects
+
+- <missing decision, evidence, authority/artifact required, and resume evidence>
 
 ## Risk map
 
 | Risk | Dimension | Severity | Confidence | Threshold | Disposition |
 | --- | --- | --- | --- | --- | --- |
+
+## Reviewer provenance
+
+- <execution mode, model/tool information, falsifier separation, and correlation limits>
 
 ## Findings
 
@@ -254,10 +347,10 @@ Use this order:
 
 ## Coverage and limitations
 
-- <what was inspected, unavailable, skipped, or not executed>
+- <what was inspected, unavailable, skipped, correlated, or not executed>
 ```
 
-Omit empty `Compound risks`, `Unverified`, and `Strengths` sections. Keep the summary and risk map scannable. Do not hide a blocker beneath strengths or methodology.
+Omit empty `Design redirects`, `Compound risks`, `Unverified`, and `Strengths` sections. Keep the summary and risk map scannable. Do not hide a blocker or unresolved design redirect beneath strengths or methodology.
 
 Use only these technical postures:
 
