@@ -1,13 +1,13 @@
 ---
 name: review
-description: Perform a read-only, adversarial, evidence-backed technical review of a working tree, branch, pull request, commit range, file, or module. Use when asked for a code review, PR review, merge-readiness assessment, bug hunt, security review, test-gap review, design challenge, or to stress-test code changes. Produce validated findings and a revision-bound risk map across baseline and change-specific dimensions without editing code, approving, merging, or manufacturing a human verdict.
+description: Perform a read-only, adversarial, evidence-backed technical review of a working tree, branch, pull request, commit range, file, or module. Use when asked for a code review, PR review, merge-readiness assessment, bug hunt, security review, test-gap review, design challenge, or to stress-test code changes. Produce validated findings, reviewer-provenance limits, unresolved upstream design redirects, and a revision-bound risk map without editing code, approving, merging, or manufacturing a human verdict.
 ---
 
 # Review
 
 Produce one technical review report and one revision-bound risk map from independently grounded review dimensions.
 
-Keep `review` as the only public workflow interface. Private workers may inspect separate dimensions, but the skill owns intake, coverage, falsification, synthesis, and the final technical posture.
+Keep `review` as the only public workflow interface. Private workers may inspect separate dimensions, but the skill owns intake, coverage, falsification, synthesis, provenance, upstream-design classification, and the final technical posture.
 
 ## Boundaries
 
@@ -18,6 +18,8 @@ Keep `review` as the only public workflow interface. Private workers may inspect
 - Do not apply fixes unless the user asks in a separate follow-up.
 - Keep accountable approval and verdict recording outside this skill.
 - Bind every revision-sensitive artefact to the exact reviewed base and head revisions.
+- Do not claim reviewer independence merely because work ran in parallel. Record shared models, prompts, evidence, tools, and other correlation limits when known.
+- Do not convert an unresolved upstream architecture decision into an ordinary implementation risk that can be casually accepted during PR review.
 
 ## Resolve the review scope
 
@@ -91,7 +93,9 @@ Always cover:
 - security;
 - specification alignment;
 - test adequacy;
-- design and maintainability.
+- local design and maintainability.
+
+`Local design and maintainability` covers implementation structure, coupling, readability, changeability, and consistency with established architecture. It must not silently invent or settle a missing system-level architectural decision.
 
 ### Change-specific dimensions
 
@@ -128,6 +132,18 @@ If workers cannot execute the diff command, include the actual diff in their pro
 
 When subagents are unavailable, apply every selected dimension sequentially in the current context, keeping separate notes and withholding synthesis until all passes finish. Label this `single-context fallback`; do not claim independent contexts.
 
+Record reviewer provenance using available measured metadata:
+
+- execution mode and context separation;
+- model and model-family identifiers, when exposed;
+- whether workers share a prompt family or originating context;
+- whether they share the immutable evidence packet, tools, retrieval limits, or runtime limitations;
+- whether the authoring model is reused as reviewer or falsifier, when known;
+- whether falsification used a fresh context, different model, specialist, or deterministic analyser;
+- material correlation limitations.
+
+Use `unknown` rather than guessing hidden model or harness details. Parallel workers with materially shared assumptions are correlated reviewers, not fully independent reviewers.
+
 ## Validate and falsify candidate findings
 
 Do not publish raw worker findings. For every candidate finding:
@@ -148,6 +164,30 @@ Deduplicate by root cause and affected behaviour, not merely title or line. Clus
 
 Reconcile contradictory recommendations. If evidence cannot decide, present the disagreement as a trade-off or unknown rather than two confident findings. Drop any finding that remains vague or unsupported after validation.
 
+## Identify unresolved upstream design decisions
+
+After validating technical findings, separately classify architecture-related concerns.
+
+Create a `design redirect` only when all of these hold:
+
+- the change depends on a material system-level architecture, ownership, interface, data, trust, operational, or rollout decision;
+- no current authoritative brief, ADR, contract, policy, or explicit human decision settles it;
+- selecting among the credible alternatives is outside local implementation review;
+- proceeding would cause the PR to make that upstream decision implicitly.
+
+Do not create a design redirect for a local implementation defect, maintainability preference, or violation of an existing explicit architecture decision. Those remain normal findings. Do not let `redirect-to-design` become a label for difficult criticism.
+
+For every design redirect record:
+
+- the exact decision that is missing;
+- evidence that the PR currently makes or depends on it;
+- credible alternatives and why review evidence cannot choose among them;
+- affected boundary and consequence of deciding implicitly;
+- required upstream artefact or accountable authority;
+- the evidence needed before technical review resumes.
+
+A design redirect is an orchestration stop condition for accountable PR review. It is not a human risk-disposition option at the ordinary verdict gate.
+
 ## Compile the revision-bound risk map
 
 Convert validated findings and material unknowns into a risk map bound to the exact reviewed revision. Each risk entry must include:
@@ -164,6 +204,8 @@ Convert validated findings and material unknowns into a risk map bound to the ex
 - detection and containment evidence when relevant;
 - verification or reversal step.
 
+Include reviewer provenance, design redirects, and an optional calibration receipt containing only measured candidate, validation, falsification, deduplication, latency, and cost values. Never invent missing instrumentation.
+
 Severity describes the supported technical consequence. Disposition describes what the current policy or evidence says should happen next. Do not derive a human verdict from either.
 
 When no repository-specific policy exists, use `no-policy` and a conservative technical disposition. Do not invent organisational thresholds or accountable owners.
@@ -174,7 +216,7 @@ Save or return the risk map alongside the rendered review report. When filesyste
 
 Follow the report shape in [references/report-contract.md](references/report-contract.md).
 
-Lead with a calibrated technical posture and severity counts, then the risk map, validated findings, unverified suspicions, strengths, coverage, and limitations.
+Lead with a calibrated technical posture and severity counts, then design redirects, the risk map, reviewer provenance, validated findings, unverified suspicions, strengths, coverage, and limitations.
 
 Use only these technical postures:
 
